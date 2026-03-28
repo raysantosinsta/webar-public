@@ -2,151 +2,496 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Teste AR Simples</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cardápio AR - Restaurante</title>
+  
   <style>
-    body {
+    * {
       margin: 0;
       padding: 0;
-      font-family: Arial, sans-serif;
+      box-sizing: border-box;
     }
-    
-    .info {
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* Interface do Cardápio (overlay) */
+    .app-container {
       position: fixed;
-      bottom: 10px;
-      left: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 12px;
-      border-radius: 8px;
-      text-align: center;
-      z-index: 100;
-      font-size: 14px;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
     }
-    
-    .info a {
+
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transition: opacity 0.3s ease;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .screen.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    /* Tela do Cardápio */
+    #menu-screen {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      overflow-y: auto;
+    }
+
+    .header {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      text-align: center;
+      color: white;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .table-info {
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.2);
+      display: inline-block;
+      padding: 5px 15px;
+      border-radius: 20px;
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    .product-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .product-image {
+      width: 100%;
+      height: 200px;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .product-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .product-info {
+      padding: 15px;
+    }
+
+    .product-info h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .product-info p {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .product-price {
+      font-size: 20px;
+      font-weight: bold;
       color: #4CAF50;
     }
-    
-    .loading {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: black;
-      color: white;
-      padding: 20px;
-      border-radius: 10px;
-      z-index: 200;
-      text-align: center;
-    }
-    
-    button {
-      position: fixed;
-      top: 10px;
-      right: 10px;
+
+    .select-btn {
+      width: 100%;
+      padding: 12px;
       background: #4CAF50;
       color: white;
       border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      z-index: 100;
+      font-size: 16px;
       cursor: pointer;
-      font-size: 14px;
+      transition: background 0.3s ease;
     }
-    
-    button:hover {
+
+    .select-btn:hover {
       background: #45a049;
     }
+
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: white;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Tela AR */
+    #ar-screen {
+      background: black;
+    }
+
+    .ar-header {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      z-index: 20;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .back-button {
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-size: 14px;
+      cursor: pointer;
+      pointer-events: auto;
+      backdrop-filter: blur(5px);
+    }
+
+    .back-button:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+
+    #product-name-ar {
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 25px;
+      font-size: 16px;
+      backdrop-filter: blur(5px);
+    }
+
+    .ar-viewer {
+      width: 100%;
+      height: 100%;
+    }
+
+    .order-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 15px;
+      z-index: 20;
+      pointer-events: auto;
+    }
+
+    .product-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      color: white;
+    }
+
+    .product-name {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .product-price {
+      font-size: 18px;
+      color: #4CAF50;
+    }
+
+    .order-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 5px 15px;
+      border-radius: 25px;
+    }
+
+    .qty-btn {
+      background: white;
+      color: #333;
+      border: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .qty-btn:hover {
+      background: #4CAF50;
+      color: white;
+    }
+
+    #quantity {
+      color: white;
+      font-size: 18px;
+      min-width: 30px;
+      text-align: center;
+    }
+
+    .confirm-btn {
+      flex: 1;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 25px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .confirm-btn:hover {
+      background: #45a049;
+    }
+
+    /* Notificação */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 15px;
+      z-index: 1000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+      pointer-events: auto;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .notification-content {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      color: white;
+    }
+
+    .notification-icon {
+      font-size: 32px;
+    }
+
+    .notification-text h3 {
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+
+    .notification-text p {
+      font-size: 14px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: white;
+      font-size: 18px;
+    }
   </style>
-  
-  <!-- Bibliotecas -->
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ar.js@2.2.2/aframe/build/aframe-ar.min.js"></script>
+
+  <!-- Bibliotecas (versões que funcionaram) -->
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
 </head>
 <body>
-  <button onclick="location.reload()">🔄 Recarregar</button>
-  
-  <div class="info">
-    📌 Aponte a câmera para o <strong>marcador HIRO</strong><br>
-    Baixe o marcador: 
-    <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" target="_blank">Clique aqui</a>
-    <br>
-    🍕 Modelo: Pizza
-  </div>
-  
-  <div class="loading" id="loading">
-    🔄 Carregando AR...
-  </div>
-  
-  <!-- Cena AR SIMPLES -->
-  <a-scene
-    id="scene"
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: true;"
-    vr-mode-ui="enabled: false"
-    renderer="antialias: true"
-  >
-    <!-- Marcador HIRO -->
-    <a-marker preset="hiro">
-      <!-- MODELO 3D - TROQUE O CAMINHO AQUI -->
-      <a-entity 
-        id="modelo"
-        gltf-model="url(/assets/models/pizza.glb)"
-        scale="0.3 0.3 0.3"
-        position="0 0 0"
-        rotation="0 0 0"
-      ></a-entity>
+  <!-- Interface do Cardápio (overlay) -->
+  <div id="app" class="app-container">
+    <!-- Tela do Cardápio -->
+    <div id="menu-screen" class="screen active">
+      <div class="header">
+        <h1>🍽️ Cardápio AR</h1>
+        <div class="table-info">
+          Mesa <span id="table-number">---</span>
+        </div>
+      </div>
+      <div id="product-list" class="product-grid">
+        <div class="loading">Carregando cardápio...</div>
+      </div>
+      <div class="footer">
+        <p>📱 Aponte a câmera para o marcador para ver o prato em 3D!</p>
+      </div>
+    </div>
+
+    <!-- Tela AR -->
+    <div id="ar-screen" class="screen">
+      <div class="ar-header">
+        <button id="back-button" class="back-button">← Voltar ao Cardápio</button>
+        <h2 id="product-name-ar">---</h2>
+      </div>
       
-      <!-- UM CUBO COLORIDO DE FALLBACK (se o modelo não carregar) -->
-      <a-box 
-        color="#FF0000" 
-        width="0.5" 
-        height="0.5" 
-        depth="0.5"
-        position="0 0 0"
-        opacity="0.7"
-      ></a-box>
-    </a-marker>
-    
-    <!-- Câmera -->
-    <a-entity camera></a-entity>
-    
-    <!-- Luzes -->
-    <a-light type="ambient" intensity="0.5"></a-light>
-    <a-light type="directional" position="1 2 1" intensity="0.8"></a-light>
-  </a-scene>
-  
+      <div class="ar-viewer">
+        <!-- Cena AR (estilo que funcionou) -->
+        <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+          <!-- Câmera -->
+          <a-entity camera></a-entity>
+
+          <!-- Marcador HIRO -->
+          <a-marker id="ar-marker" preset="hiro">
+            <a-entity id="ar-model" scale="0.3 0.3 0.3" position="0 0 0">
+              <!-- Modelo 3D será carregado dinamicamente -->
+            </a-entity>
+            <!-- FALLBACK: cubo colorido se o modelo não carregar -->
+            <a-box id="fallback-box" color="#FF6B6B" width="0.5" height="0.5" depth="0.5" position="0 0 0" opacity="0.5"></a-box>
+          </a-marker>
+        </a-scene>
+      </div>
+      
+      <div class="order-panel" id="order-panel">
+        <div class="product-info">
+          <span id="selected-product-name" class="product-name">---</span>
+          <span id="selected-product-price" class="product-price">R$ --,--</span>
+        </div>
+        <div class="order-controls">
+          <div class="quantity-control">
+            <button id="decrease-qty" class="qty-btn">-</button>
+            <span id="quantity">1</span>
+            <button id="increase-qty" class="qty-btn">+</button>
+          </div>
+          <button id="confirm-order" class="confirm-btn">📝 Fazer Pedido</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notificação de pedido pronto -->
+  <div id="notification" class="notification">
+    <div class="notification-content">
+      <div class="notification-icon">🎉</div>
+      <div class="notification-text">
+        <h3>Pedido Pronto!</h3>
+        <p id="notification-message">Seu pedido está pronto</p>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Esconde loading após alguns segundos
-    setTimeout(() => {
-      const loading = document.getElementById('loading');
-      if (loading) loading.style.display = 'none';
-    }, 3000);
-    
-    // Verifica se o modelo carregou
-    const modelo = document.getElementById('modelo');
-    if (modelo) {
-      modelo.addEventListener('model-loaded', () => {
-        console.log('✅ MODELO CARREGADO COM SUCESSO!');
-        const loading = document.getElementById('loading');
-        if (loading) loading.style.display = 'none';
-      });
-      
-      modelo.addEventListener('model-error', (e) => {
-        console.error('❌ ERRO AO CARREGAR MODELO:', e);
-        const loading = document.getElementById('loading');
-        if (loading) {
-          loading.innerHTML = '❌ Erro ao carregar modelo GLB<br>Verifique o caminho do arquivo';
-          loading.style.background = 'red';
+    // Configuração global
+    const CONFIG = {
+      API_URL: 'http://localhost:3000/api',
+      WS_URL: 'ws://localhost:3000',
+      MODELS_PATH: '/assets/models/'
+    };
+
+    // Função para mostrar notificação
+    function showNotification(message) {
+      const notification = document.getElementById('notification');
+      const messageElement = document.getElementById('notification-message');
+      messageElement.textContent = message;
+      notification.classList.add('show');
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 5000);
+    }
+
+    // Função para mostrar mensagem temporária
+    function showTemporaryMessage(message, color) {
+      const toast = document.createElement('div');
+      toast.className = 'toast-message';
+      toast.textContent = message;
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: ${color};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: bold;
+        z-index: 10000;
+        animation: fadeInUp 0.3s ease;
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Aguarda o carregamento do modelo
+    const modelEntity = document.getElementById('ar-model');
+    const fallbackBox = document.getElementById('fallback-box');
+
+    if (modelEntity) {
+      // Quando um modelo for carregado dinamicamente
+      const observer = new MutationObserver(() => {
+        const gltfModel = modelEntity.querySelector('[gltf-model]');
+        if (gltfModel) {
+          gltfModel.addEventListener('model-loaded', () => {
+            console.log('✅ Modelo carregado com sucesso!');
+            if (fallbackBox) fallbackBox.setAttribute('visible', 'false');
+          });
+          gltfModel.addEventListener('model-error', (error) => {
+            console.error('❌ Erro ao carregar modelo:', error);
+          });
         }
       });
+      observer.observe(modelEntity, { childList: true, subtree: true });
     }
-    
-    console.log('🚀 Teste AR iniciado');
-    console.log('📌 Aponte para o marcador HIRO');
-    console.log('📦 Modelo esperado em: /assets/models/pizza.glb');
+
+    console.log('🚀 AR iniciado - Aponte para o marcador HIRO');
   </script>
+
+  <style>
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+  </style>
+
+  <!-- Scripts do seu projeto -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/websocket.js"></script>
+  <script src="js/ar-controller.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

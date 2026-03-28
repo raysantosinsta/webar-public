@@ -1,232 +1,152 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <meta name="description" content="Cardápio interativo com Realidade Aumentada para restaurantes" />
-  <title>Cardápio AR - Restaurante</title>
-  
-  <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css" />
-  
-  <!-- Bibliotecas -->
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <!-- ✅ AR.js via CDN oficial -->
-  <script src="https://cdn.jsdelivr.net/npm/ar.js@2.2.2/aframe/build/aframe-ar.min.js"></script>
-  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
-</head>
-<body>
-  <div id="app" class="app-container">
-    <!-- Tela do Cardápio -->
-    <div id="menu-screen" class="screen active">
-      <div class="header">
-        <h1>🍽️ Cardápio AR</h1>
-        <div class="table-info">
-          Mesa <span id="table-number">---</span>
-          <span id="connection-status" class="connection-status">🟢 Conectado</span>
-        </div>
-      </div>
-      
-      <div id="product-list" class="product-grid">
-        <!-- Produtos serão carregados via JavaScript -->
-        <div class="loading">Carregando cardápio...</div>
-      </div>
-      
-      <div class="footer">
-        <p>📱 Aponte a câmera para o marcador para ver o prato em 3D!</p>
-        <p class="helper">⚠️ Se a câmera não funcionar, verifique as permissões</p>
-      </div>
-    </div>
-
-    <!-- Tela AR -->
-    <div id="ar-screen" class="screen">
-      <div class="ar-header">
-        <button id="back-button" class="back-button" aria-label="Voltar ao cardápio">
-          ← Voltar ao Cardápio
-        </button>
-        <h2 id="product-name-ar">---</h2>
-      </div>
-      
-      <div class="ar-viewer">
-        <!-- Mensagem de erro da câmera -->
-        <div id="camera-error" class="camera-error" style="display: none;">
-          <div class="error-content">
-            <span class="error-icon">📷</span>
-            <p>Não foi possível acessar a câmera.</p>
-            <button id="retry-camera" class="retry-btn">Tentar Novamente</button>
-            <button id="back-to-menu" class="back-menu-btn">Voltar ao Cardápio</button>
-          </div>
-        </div>
-        
-        <!-- Cena AR -->
-        <a-scene
-          id="ar-scene"
-          embedded
-          arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-          renderer="antialias: true; alpha: true"
-          vr-mode-ui="enabled: false"
-        >
-          <a-marker id="ar-marker" preset="hiro">
-            <a-entity id="ar-model" scale="0.3 0.3 0.3" position="0 0 0">
-              <!-- Modelo 3D será carregado dinamicamente -->
-            </a-entity>
-          </a-marker>
-          
-          <a-entity camera>
-            <a-entity 
-              cursor="fuse: false; rayOrigin: mouse"
-              position="0 0 -1"
-              geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-              material="color: white; shader: flat"
-              scale="0.5 0.5 0.5"
-            ></a-entity>
-          </a-entity>
-          
-          <!-- Luz ambiente para melhor visualização -->
-          <a-light type="ambient" color="#ffffff" intensity="0.5"></a-light>
-          <a-light type="directional" color="#ffffff" intensity="0.8" position="1 2 1"></a-light>
-        </a-scene>
-      </div>
-      
-      <div class="order-panel" id="order-panel">
-        <div class="product-info">
-          <span id="selected-product-name" class="product-name">---</span>
-          <span id="selected-product-price" class="product-price">R$ --,--</span>
-        </div>
-        <div class="order-controls">
-          <div class="quantity-control">
-            <button id="decrease-qty" class="qty-btn" aria-label="Diminuir quantidade">-</button>
-            <span id="quantity" class="quantity-value">1</span>
-            <button id="increase-qty" class="qty-btn" aria-label="Aumentar quantidade">+</button>
-          </div>
-          <button id="confirm-order" class="confirm-btn">
-            📝 Fazer Pedido
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Notificação global (fora das screens para aparecer em qualquer lugar) -->
-  <div id="notification" class="notification" style="display: none;">
-    <div class="notification-content">
-      <div class="notification-icon">🎉</div>
-      <div class="notification-text">
-        <h3>Pedido Pronto!</h3>
-        <p id="notification-message">Seu pedido está pronto</p>
-      </div>
-      <button class="notification-close" aria-label="Fechar">×</button>
-    </div>
-  </div>
-  
-  <!-- Scripts -->
-  <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/websocket.js"></script>
-  <script src="js/ar-controller.js"></script>
-  <script src="js/app.js"></script>
-  
-  <script>
-    // Script de fallback para verificar suporte a AR
-    (function() {
-      // Verifica se o navegador suporta WebGL
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      
-      if (!gl) {
-        console.warn('⚠️ WebGL não suportado');
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'browser-error';
-        errorDiv.innerHTML = `
-          <div class="error-content">
-            <span class="error-icon">⚠️</span>
-            <h3>Navegador não compatível</h3>
-            <p>Seu navegador não suporta Realidade Aumentada.</p>
-            <p>Por favor, use Chrome, Safari ou Firefox mais recentes.</p>
-          </div>
-        `;
-        document.body.appendChild(errorDiv);
-      }
-      
-      // Verifica se é iOS (que tem restrições de câmera)
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      if (isIOS) {
-        console.log('📱 Detectado iOS - a câmera pode exigir permissão manual');
-      }
-    })();
-  </script>
-  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Teste AR Simples</title>
   <style>
-    /* Estilos de fallback inline caso o CSS não carregue */
-    .browser-error {
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    
+    .info {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.9);
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
       color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 10000;
-      font-family: sans-serif;
-    }
-    .browser-error .error-content {
+      padding: 12px;
+      border-radius: 8px;
       text-align: center;
-      padding: 20px;
+      z-index: 100;
+      font-size: 14px;
     }
-    .browser-error .error-icon {
-      font-size: 48px;
+    
+    .info a {
+      color: #4CAF50;
     }
+    
     .loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
-    }
-    .connection-status {
-      font-size: 12px;
-      margin-left: 10px;
-      padding: 2px 6px;
-      border-radius: 12px;
-      background: rgba(0,0,0,0.1);
-    }
-    .camera-error {
-      position: absolute;
+      position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.9);
+      background: black;
       color: white;
       padding: 20px;
-      border-radius: 12px;
+      border-radius: 10px;
+      z-index: 200;
       text-align: center;
-      z-index: 100;
-      min-width: 250px;
     }
-    .retry-btn, .back-menu-btn {
-      margin: 10px 5px;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .retry-btn {
+    
+    button {
+      position: fixed;
+      top: 10px;
+      right: 10px;
       background: #4CAF50;
       color: white;
-    }
-    .back-menu-btn {
-      background: #666;
-      color: white;
-    }
-    .notification-close {
-      background: none;
       border: none;
-      color: white;
-      font-size: 24px;
+      padding: 10px 15px;
+      border-radius: 5px;
+      z-index: 100;
       cursor: pointer;
-      margin-left: 10px;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      background: #45a049;
     }
   </style>
+  
+  <!-- Bibliotecas -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ar.js@2.2.2/aframe/build/aframe-ar.min.js"></script>
+</head>
+<body>
+  <button onclick="location.reload()">🔄 Recarregar</button>
+  
+  <div class="info">
+    📌 Aponte a câmera para o <strong>marcador HIRO</strong><br>
+    Baixe o marcador: 
+    <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" target="_blank">Clique aqui</a>
+    <br>
+    🍕 Modelo: Pizza
+  </div>
+  
+  <div class="loading" id="loading">
+    🔄 Carregando AR...
+  </div>
+  
+  <!-- Cena AR SIMPLES -->
+  <a-scene
+    id="scene"
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: true;"
+    vr-mode-ui="enabled: false"
+    renderer="antialias: true"
+  >
+    <!-- Marcador HIRO -->
+    <a-marker preset="hiro">
+      <!-- MODELO 3D - TROQUE O CAMINHO AQUI -->
+      <a-entity 
+        id="modelo"
+        gltf-model="url(/assets/models/pizza.glb)"
+        scale="0.3 0.3 0.3"
+        position="0 0 0"
+        rotation="0 0 0"
+      ></a-entity>
+      
+      <!-- UM CUBO COLORIDO DE FALLBACK (se o modelo não carregar) -->
+      <a-box 
+        color="#FF0000" 
+        width="0.5" 
+        height="0.5" 
+        depth="0.5"
+        position="0 0 0"
+        opacity="0.7"
+      ></a-box>
+    </a-marker>
+    
+    <!-- Câmera -->
+    <a-entity camera></a-entity>
+    
+    <!-- Luzes -->
+    <a-light type="ambient" intensity="0.5"></a-light>
+    <a-light type="directional" position="1 2 1" intensity="0.8"></a-light>
+  </a-scene>
+  
+  <script>
+    // Esconde loading após alguns segundos
+    setTimeout(() => {
+      const loading = document.getElementById('loading');
+      if (loading) loading.style.display = 'none';
+    }, 3000);
+    
+    // Verifica se o modelo carregou
+    const modelo = document.getElementById('modelo');
+    if (modelo) {
+      modelo.addEventListener('model-loaded', () => {
+        console.log('✅ MODELO CARREGADO COM SUCESSO!');
+        const loading = document.getElementById('loading');
+        if (loading) loading.style.display = 'none';
+      });
+      
+      modelo.addEventListener('model-error', (e) => {
+        console.error('❌ ERRO AO CARREGAR MODELO:', e);
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.innerHTML = '❌ Erro ao carregar modelo GLB<br>Verifique o caminho do arquivo';
+          loading.style.background = 'red';
+        }
+      });
+    }
+    
+    console.log('🚀 Teste AR iniciado');
+    console.log('📌 Aponte para o marcador HIRO');
+    console.log('📦 Modelo esperado em: /assets/models/pizza.glb');
+  </script>
 </body>
 </html>

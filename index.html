@@ -370,42 +370,41 @@
       </div>
     </div>
 
-    <a-scene
-      id="ar-scene"
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      vr-mode-ui="enabled: false"
-      style="
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 1;
-      "
-    >
-      <a-entity camera></a-entity>
-      <a-marker preset="hiro">
-        <a-entity
-          id="ar-model"
-          class="tocavel"
-          gesture-handler="enabled: true"
-          scale="0.3 0.3 0.3"
-          position="0 0 0"
-          rotation="0 0 0"
-        ></a-entity>
-        <a-box
-          id="fallback-cube"
-          color="#FF6B6B"
-          width="0.5"
-          height="0.5"
-          depth="0.5"
-          opacity="0.5"
-        ></a-box>
-      </a-marker>
-      <a-light type="ambient" intensity="0.8"></a-light>
-      <a-light type="directional" intensity="0.6" position="1 2 1"></a-light>
-    </a-scene>
+  <a-scene
+  id="ar-scene"
+  embedded
+  vr-mode-ui="enabled: false"
+  style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"
+>
+  <!-- Câmera -->
+  <a-entity camera position="0 0 0"></a-entity>
+
+  <!-- Container do modelo - aparece direto na frente da câmera -->
+  <a-entity
+    id="ar-model"
+    class="tocavel"
+    gesture-handler="enabled: true"
+    position="0 0.2 -1.2"   <!-- posição inicial: um pouco à frente e acima -->
+    scale="0.4 0.4 0.4"
+    rotation="0 0 0"
+  ></a-entity>
+
+  <!-- Cubo vermelho de fallback (caso o modelo falhe) -->
+  <a-box
+    id="fallback-cube"
+    color="#FF6B6B"
+    width="0.6"
+    height="0.6"
+    depth="0.6"
+    position="0 0.2 -1.2"
+    opacity="0.3"
+    visible="false"
+  ></a-box>
+
+  <!-- Iluminação básica -->
+  <a-light type="ambient" intensity="0.8"></a-light>
+  <a-light type="directional" intensity="0.7" position="1 2 2"></a-light>
+</a-scene>
 
    <script>
   const products = [
@@ -494,63 +493,80 @@
   }
 
   // ==================== FUNÇÃO CORRIGIDA PARA CARREGAR MODELO ====================
-  function loadModel(modelFile) {
+
+function loadModel(modelFile) {
   const modelEntity = document.getElementById("ar-model");
   const fallback = document.getElementById("fallback-cube");
 
-  // Limpa tudo antes
+  // Limpa qualquer modelo anterior
   while (modelEntity.firstChild) {
     modelEntity.removeChild(modelEntity.firstChild);
   }
 
-  if (fallback) fallback.setAttribute("visible", "true");
-
   const modelPath = `assets/models/${modelFile}`;
-  console.log(`🔍 Tentando carregar modelo: ${modelPath}`);
+  console.log(`🔍 Carregando modelo automaticamente: ${modelPath}`);
 
   const model = document.createElement("a-entity");
   model.setAttribute("gltf-model", `url(${modelPath})`);
-  model.setAttribute("scale", "0.35 0.35 0.35");        // aumentei um pouco
-  model.setAttribute("position", "0 0.2 0");            // levantei um pouco
+  model.setAttribute("scale", "0.4 0.4 0.4");
+  model.setAttribute("position", "0 0.2 -1.2");
   model.setAttribute("rotation", "0 0 0");
   model.setAttribute("class", "tocavel");
   model.setAttribute("gesture-handler", "enabled: true");
 
+  // Sucesso
   model.addEventListener("model-loaded", () => {
-    console.log("✅ Modelo carregado com SUCESSO!");
+    console.log("✅ Modelo carregado automaticamente com sucesso!");
     if (fallback) fallback.setAttribute("visible", "false");
-    updateStatus(`✅ ${currentProduct?.name} carregado!`);
+    updateStatus(`✅ ${currentProduct?.name} carregado! Use pinça e arraste para girar.`);
   });
 
-  model.addEventListener("model-error", (e) => {
-    console.error("❌ ERRO ao carregar o modelo:", e);
-    updateStatus(`⚠️ Falha ao carregar ${modelFile} - Verifique o arquivo`, true);
+  // Erro
+  model.addEventListener("model-error", (err) => {
+    console.error("❌ Falha ao carregar modelo:", err);
+    updateStatus(`⚠️ Erro ao carregar ${modelFile}`, true);
     if (fallback) fallback.setAttribute("visible", "true");
   });
 
   modelEntity.appendChild(model);
 }
-  function selectProduct(id) {
-    currentProduct = products.find((p) => p.id === id);
-    if (!currentProduct) return;
 
-    currentQuantity = 1;
-    document.getElementById("quantity").textContent = "1";
-    document.getElementById("ar-product-name").textContent = currentProduct.name;
-    document.getElementById("ar-product-price").textContent = `R$ ${currentProduct.price.toFixed(2)}`;
-
-    // Carrega o modelo 3D
-    loadModel(currentProduct.modelFile);
-
-    // Troca de tela
-    document.getElementById("menu-screen").classList.add("hide");
-    document.getElementById("back-btn").style.display = "block";
-    document.getElementById("order-panel").classList.add("show");
-    document.getElementById("ar-instructions").style.display = "block";
-
-    updateStatus("🎯 Aponte a câmera para o marcador HIRO");
+function selectProduct(id) {
+  currentProduct = products.find((p) => p.id === id);
+  if (!currentProduct) {
+    console.error("Produto não encontrado com ID:", id);
+    return;
   }
 
+  // Resetar quantidade
+  currentQuantity = 1;
+  document.getElementById("quantity").textContent = "1";
+
+  // Atualizar informações no painel AR
+  document.getElementById("ar-product-name").textContent = currentProduct.name;
+  document.getElementById("ar-product-price").textContent = 
+    `R$ ${currentProduct.price.toFixed(2)}`;
+
+  // Carregar o modelo 3D automaticamente (sem marcador)
+  loadModel(currentProduct.modelFile);
+
+  // Trocar de tela: esconder cardápio e mostrar AR + painel de pedido
+  document.getElementById("menu-screen").classList.add("hide");
+  document.getElementById("back-btn").style.display = "block";
+  document.getElementById("order-panel").classList.add("show");
+  document.getElementById("ar-instructions").style.display = "block";
+
+  // Atualizar status
+  updateStatus(`✅ Carregando ${currentProduct.name}...`);
+
+  // Garantir que o fallback (cubo vermelho) fique escondido após carregar
+  setTimeout(() => {
+    const fallback = document.getElementById("fallback-cube");
+    if (fallback) fallback.setAttribute("visible", "false");
+  }, 800);
+
+  console.log(`🎯 Produto selecionado: ${currentProduct.name} | Modelo: ${currentProduct.modelFile}`);
+}
   function backToMenu() {
     document.getElementById("menu-screen").classList.remove("hide");
     document.getElementById("back-btn").style.display = "none";

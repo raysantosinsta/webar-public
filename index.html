@@ -3,112 +3,694 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Teste AR - Hambúrguer</title>
-  
+  <title>Cardápio AR - Restaurante</title>
+
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+
+  <!-- AR.js -->
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+  <!-- Gesture support para AR.js (pinch zoom + rotate) -->
+  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
+  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
+
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       overflow: hidden;
-      font-family: Arial, sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
     }
-    
-    .info {
+
+    /* Overlay do Cardápio */
+    #menu-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      z-index: 100;
+      transition: transform 0.5s ease;
+      overflow-y: auto;
+    }
+
+    #menu-overlay.hide {
+      transform: translateX(-100%);
+    }
+
+    .header {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      text-align: center;
+      color: white;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .table-info {
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.2);
+      display: inline-block;
+      padding: 5px 20px;
+      border-radius: 25px;
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    .product-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .product-image {
+      width: 100%;
+      height: 200px;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 80px;
+    }
+
+    .product-info {
+      padding: 15px;
+    }
+
+    .product-info h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .product-info p {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .product-price {
+      font-size: 22px;
+      font-weight: bold;
+      color: #4CAF50;
+    }
+
+    .select-btn {
+      width: 100%;
+      padding: 12px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+
+    .select-btn:hover {
+      background: #45a049;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: white;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Overlay AR */
+    #ar-overlay {
       position: absolute;
       bottom: 20px;
       left: 20px;
       right: 20px;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 15px;
+      z-index: 200;
+      transition: transform 0.3s ease;
+      transform: translateY(100%);
+      pointer-events: auto;
+    }
+
+    #ar-overlay.show {
+      transform: translateY(0);
+    }
+
+    .product-info-ar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
       color: white;
-      padding: 12px;
-      border-radius: 10px;
-      text-align: center;
-      z-index: 100;
-      font-size: 14px;
     }
-    
-    .status {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: rgba(0,0,0,0.7);
+
+    .product-name-ar {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .product-price-ar {
+      font-size: 18px;
       color: #4CAF50;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-family: monospace;
-      z-index: 100;
     }
-    
-    button {
-      position: absolute;
-      top: 20px;
-      left: 20px;
+
+    .order-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 5px 15px;
+      border-radius: 25px;
+    }
+
+    .qty-btn {
+      background: white;
+      color: #333;
+      border: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .qty-btn:hover {
+      background: #4CAF50;
+      color: white;
+    }
+
+    #quantity {
+      color: white;
+      font-size: 18px;
+      min-width: 30px;
+      text-align: center;
+    }
+
+    .confirm-btn {
+      flex: 1;
       background: #4CAF50;
       color: white;
       border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
+      padding: 10px;
+      border-radius: 25px;
+      font-size: 16px;
       cursor: pointer;
-      z-index: 100;
+      font-weight: bold;
+    }
+
+    .confirm-btn:hover {
+      background: #45a049;
+    }
+
+    .back-ar-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 200;
+      backdrop-filter: blur(5px);
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 15px;
+      z-index: 1000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .notification-content {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      color: white;
+    }
+
+    .notification-icon {
+      font-size: 32px;
+    }
+
+    .notification-text h3 {
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: white;
+      font-size: 18px;
+    }
+
+    .connection-status {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.6);
+      color: #4CAF50;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 10px;
+      z-index: 1000;
     }
   </style>
-  
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 <body>
-  <button onclick="location.reload()">🔄 Recarregar</button>
-  <div class="status" id="status">🔍 Iniciando AR...</div>
-  <div class="info">
-    🍔 Aponte a câmera para o <strong>marcador HIRO</strong><br>
-    <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" target="_blank" style="color: #4CAF50;">📥 Baixar Marcador</a>
+  <!-- Tela do Cardápio -->
+  <div id="menu-overlay">
+    <div class="header">
+      <h1>🍽️ Cardápio AR</h1>
+      <div class="table-info">
+        Mesa <span id="table-number">1</span>
+      </div>
+    </div>
+    <div id="product-list" class="product-grid">
+      <div class="loading">Carregando cardápio...</div>
+    </div>
+    <div class="footer">
+      <p>📱 Aponte a câmera para o marcador HIRO para ver o prato em 3D!</p>
+      <p style="font-size: 12px; margin-top: 5px;">🔍 <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" target="_blank" style="color: #ff9800;">Baixar Marcador HIRO</a></p>
+      <p style="font-size: 11px; margin-top: 5px;">🤌 Dois dedos: Zoom | 👉 Um dedo: Rotação</p>
+    </div>
   </div>
-  
-  <a-scene 
-    embedded 
+
+  <!-- Botão Voltar (aparece no AR) -->
+  <button id="back-ar-btn" class="back-ar-btn" style="display: none;">← Voltar ao Cardápio</button>
+
+  <!-- Painel de Pedido (aparece no AR) -->
+  <div id="ar-overlay">
+    <div class="product-info-ar">
+      <span id="ar-product-name" class="product-name-ar">---</span>
+      <span id="ar-product-price" class="product-price-ar">R$ --,--</span>
+    </div>
+    <div class="order-controls">
+      <div class="quantity-control">
+        <button id="decrease-qty-ar" class="qty-btn">-</button>
+        <span id="quantity-ar">1</span>
+        <button id="increase-qty-ar" class="qty-btn">+</button>
+      </div>
+      <button id="confirm-order-ar" class="confirm-btn">📝 Fazer Pedido</button>
+    </div>
+  </div>
+
+  <!-- Notificação -->
+  <div id="notification" class="notification">
+    <div class="notification-content">
+      <div class="notification-icon">🎉</div>
+      <div class="notification-text">
+        <h3>Pedido Pronto!</h3>
+        <p id="notification-message">Seu pedido está pronto</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="connection-status" id="connection-status">🔍 Iniciando...</div>
+
+  <!-- Cena AR -->
+  <a-scene
+    embedded
     arjs="sourceType: webcam; debugUIEnabled: false;"
-    vr-mode-ui="enabled: false"
+    gesture-detector
+    style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;"
   >
+    <!-- Assets -->
+    <a-assets>
+      <audio id="order-sound" preload="auto"></audio>
+    </a-assets>
+
+    <!-- Câmera -->
     <a-entity camera></a-entity>
-    
-    <a-marker preset="hiro">
-      <!-- Modelo Hambúrguer -->
+
+    <!-- Marcador HIRO -->
+    <a-marker preset="hiro" id="ar-marker">
       <a-entity
-        id="model"
-        gltf-model="url(/assets/models/hamburguer.glb)"
+        id="ar-model"
+        class="tocavel"
+        gesture-handler="enabled: true"
         scale="0.3 0.3 0.3"
         position="0 0 0"
         rotation="0 0 0"
-      ></a-entity>
-      
-      <!-- Fallback: cubo vermelho -->
-      <a-box color="#FF6B6B" width="0.5" height="0.5" depth="0.5" opacity="0.5"></a-box>
+      >
+      </a-entity>
+      <!-- Fallback: cubo colorido -->
+      <a-box id="fallback-cube" color="#FF6B6B" width="0.5" height="0.5" depth="0.5" opacity="0.5"></a-box>
     </a-marker>
   </a-scene>
-  
+
   <script>
-    const statusDiv = document.getElementById('status');
-    
-    setTimeout(() => {
-      const model = document.getElementById('model');
-      if (model) {
-        model.addEventListener('model-loaded', () => {
-          statusDiv.innerHTML = '✅ Modelo carregado!';
-          statusDiv.style.color = '#4CAF50';
-          // Esconde o cubo fallback
-          const fallback = document.querySelector('a-box');
-          if (fallback) fallback.setAttribute('visible', 'false');
+    // ============================================
+    // CONFIGURAÇÃO
+    // ============================================
+    const SERVER_URL = window.location.origin; // Pega o IP atual automaticamente
+    const CONFIG = {
+      API_URL: `${SERVER_URL}/api`,
+      WS_URL: SERVER_URL.replace('http', 'ws'),
+      MODELS_PATH: '/assets/models/'
+    };
+
+    // ============================================
+    // DADOS DOS PRODUTOS
+    // ============================================
+    const products = [
+      {
+        id: 1,
+        name: "Hambúrguer Artesanal",
+        description: "Pão brioche, carne 180g, queijo, bacon, salada",
+        price: 32.90,
+        modelFile: "hamburguer.glb",
+        emoji: "🍔",
+        color: "#ff9800"
+      },
+      {
+        id: 2,
+        name: "Pizza Margherita",
+        description: "Molho, mussarela, manjericão, azeite",
+        price: 45.90,
+        modelFile: "pizza.glb",
+        emoji: "🍕",
+        color: "#f44336"
+      },
+      {
+        id: 3,
+        name: "Refrigerante",
+        description: "Coca-Cola 350ml",
+        price: 7.50,
+        modelFile: "soda.glb",
+        emoji: "🥤",
+        color: "#2196f3"
+      }
+    ];
+
+    // Estado atual
+    let currentProduct = null;
+    let currentQuantity = 1;
+    let socket = null;
+    let modelLoaded = false;
+
+    // ============================================
+    // FUNÇÕES UI
+    // ============================================
+    function showNotification(message, isError = false) {
+      const notification = document.getElementById('notification');
+      const messageElement = document.getElementById('notification-message');
+      messageElement.textContent = message;
+      notification.classList.add('show');
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 5000);
+    }
+
+    function updateConnectionStatus(status, isError = false) {
+      const statusDiv = document.getElementById('connection-status');
+      statusDiv.textContent = status;
+      statusDiv.style.color = isError ? '#F44336' : '#4CAF50';
+    }
+
+    // ============================================
+    // RENDERIZAR CARDÁPIO
+    // ============================================
+    function renderProductList() {
+      const container = document.getElementById('product-list');
+      container.innerHTML = '';
+      
+      products.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <div class="product-image" style="background: ${product.color}20;">
+            <span style="font-size: 64px;">${product.emoji}</span>
+          </div>
+          <div class="product-info">
+            <h3>${product.name}</h3>
+            <p>${product.description}</p>
+            <div class="product-price">R$ ${product.price.toFixed(2)}</div>
+          </div>
+          <button class="select-btn" data-id="${product.id}">Ver em 3D</button>
+        `;
+        
+        const btn = card.querySelector('.select-btn');
+        btn.addEventListener('click', () => selectProduct(product.id));
+        container.appendChild(card);
+      });
+    }
+
+    // ============================================
+    // SELECIONAR PRODUTO
+    // ============================================
+    function selectProduct(productId) {
+      currentProduct = products.find(p => p.id === productId);
+      if (!currentProduct) return;
+      
+      currentQuantity = 1;
+      document.getElementById('quantity-ar').textContent = '1';
+      document.getElementById('ar-product-name').textContent = currentProduct.name;
+      document.getElementById('ar-product-price').textContent = `R$ ${currentProduct.price.toFixed(2)}`;
+      
+      // Carregar modelo 3D
+      load3DModel(currentProduct.modelFile);
+      
+      // Mostrar interface AR
+      document.getElementById('menu-overlay').classList.add('hide');
+      document.getElementById('back-ar-btn').style.display = 'block';
+      document.getElementById('ar-overlay').classList.add('show');
+      
+      updateConnectionStatus('🎯 AR Ativo - Aponte para o marcador');
+    }
+
+    // ============================================
+    // CARREGAR MODELO 3D
+    // ============================================
+    function load3DModel(modelFile) {
+      const modelEntity = document.getElementById('ar-model');
+      const fallbackCube = document.getElementById('fallback-cube');
+      
+      if (!modelEntity) return;
+      
+      // Limpar modelo anterior
+      while (modelEntity.firstChild) {
+        modelEntity.removeChild(modelEntity.firstChild);
+      }
+      
+      // Mostrar fallback
+      if (fallbackCube) fallbackCube.setAttribute('visible', 'true');
+      modelLoaded = false;
+      
+      // Criar novo modelo
+      const model = document.createElement('a-entity');
+      const modelPath = `${CONFIG.MODELS_PATH}${modelFile}`;
+      model.setAttribute('gltf-model', `url(${modelPath})`);
+      model.setAttribute('scale', '0.3 0.3 0.3');
+      model.setAttribute('position', '0 0 0');
+      model.setAttribute('rotation', '0 0 0');
+      model.setAttribute('class', 'tocavel');
+      model.setAttribute('gesture-handler', 'enabled: true');
+      
+      // Eventos do modelo
+      model.addEventListener('model-loaded', () => {
+        console.log('✅ Modelo carregado:', modelFile);
+        if (fallbackCube) fallbackCube.setAttribute('visible', 'false');
+        modelLoaded = true;
+        updateConnectionStatus(`✅ ${currentProduct.name} pronto!`);
+      });
+      
+      model.addEventListener('model-error', (e) => {
+        console.error('❌ Erro ao carregar modelo:', modelFile);
+        updateConnectionStatus(`❌ Erro: ${modelFile} não encontrado`, true);
+      });
+      
+      modelEntity.appendChild(model);
+    }
+
+    // ============================================
+    // FAZER PEDIDO
+    // ============================================
+    async function makeOrder() {
+      if (!currentProduct) {
+        showNotification('❌ Selecione um produto primeiro!', true);
+        return;
+      }
+      
+      const tableNumber = 1; // Pode vir da URL
+      
+      try {
+        const response = await fetch(`${CONFIG.API_URL}/orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tableNumber: tableNumber,
+            productId: currentProduct.id,
+            productName: currentProduct.name,
+            productPrice: currentProduct.price,
+            quantity: currentQuantity,
+            observation: ''
+          })
         });
         
-        model.addEventListener('model-error', (e) => {
-          statusDiv.innerHTML = '❌ Erro: modelo não encontrado!';
-          statusDiv.style.color = '#F44336';
-          console.error('Erro ao carregar modelo:', e);
-        });
+        if (response.ok) {
+          showNotification(`✅ Pedido de ${currentQuantity}x ${currentProduct.name} enviado!`);
+          
+          // Tocar som
+          const audio = new Audio();
+          audio.src = 'data:audio/wav;base64,U3RlYWx0aCBTb3VuZA==';
+          audio.play().catch(e => console.log('Som não suportado'));
+          
+          // Voltar ao cardápio após 2 segundos
+          setTimeout(() => {
+            backToMenu();
+          }, 2000);
+        } else {
+          throw new Error('Erro no servidor');
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        showNotification('❌ Erro ao enviar pedido. Tente novamente.', true);
       }
-    }, 1000);
+    }
+
+    // ============================================
+    // VOLTAR AO CARDÁPIO
+    // ============================================
+    function backToMenu() {
+      document.getElementById('menu-overlay').classList.remove('hide');
+      document.getElementById('back-ar-btn').style.display = 'none';
+      document.getElementById('ar-overlay').classList.remove('show');
+      updateConnectionStatus('📱 Cardápio');
+    }
+
+    // ============================================
+    // WEBSOCKET
+    // ============================================
+    function initWebSocket() {
+      try {
+        socket = io(CONFIG.WS_URL, {
+          query: { type: 'customer', tableNumber: 1 },
+          transports: ['websocket']
+        });
+        
+        socket.on('connect', () => {
+          console.log('✅ WebSocket conectado');
+          updateConnectionStatus('🟢 Conectado');
+        });
+        
+        socket.on('order-ready', (data) => {
+          console.log('🎉 Pedido pronto:', data);
+          showNotification(`🎉 Seu ${data.productName} está pronto!`);
+          
+          // Animação de celebração
+          const model = document.getElementById('ar-model');
+          if (model && modelLoaded) {
+            model.setAttribute('animation__celebrate', {
+              property: 'scale',
+              from: '0.3 0.3 0.3',
+              to: '0.45 0.45 0.45',
+              dur: 300,
+              dir: 'alternate',
+              loop: 3
+            });
+            setTimeout(() => {
+              model.removeAttribute('animation__celebrate');
+            }, 900);
+          }
+        });
+        
+        socket.on('disconnect', () => {
+          console.log('❌ WebSocket desconectado');
+          updateConnectionStatus('🔴 Desconectado', true);
+        });
+      } catch (error) {
+        console.error('Erro WebSocket:', error);
+      }
+    }
+
+    // ============================================
+    // INICIALIZAÇÃO
+    // ============================================
+    function init() {
+      // Mostrar IP atual
+      updateConnectionStatus(`📱 ${window.location.hostname}`);
+      
+      // Renderizar cardápio
+      renderProductList();
+      
+      // Iniciar WebSocket
+      initWebSocket();
+      
+      // Eventos UI
+      document.getElementById('back-ar-btn').addEventListener('click', backToMenu);
+      document.getElementById('confirm-order-ar').addEventListener('click', makeOrder);
+      
+      // Controles de quantidade
+      document.getElementById('decrease-qty-ar').addEventListener('click', () => {
+        if (currentQuantity > 1) {
+          currentQuantity--;
+          document.getElementById('quantity-ar').textContent = currentQuantity;
+        }
+      });
+      
+      document.getElementById('increase-qty-ar').addEventListener('click', () => {
+        if (currentQuantity < 99) {
+          currentQuantity++;
+          document.getElementById('quantity-ar').textContent = currentQuantity;
+        }
+      });
+      
+      console.log('🚀 App iniciado em:', SERVER_URL);
+    }
     
-    console.log('🚀 AR iniciado - Aponte para o marcador HIRO');
+    // Iniciar quando a página carregar
+    window.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>

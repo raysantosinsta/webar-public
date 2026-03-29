@@ -526,6 +526,86 @@
         alert(`Backend configurado: ${BACKEND_URL}`);
       };
 
+      // ============================================
+// FUNÇÃO PARA ENVIAR O PEDIDO AO BACKEND
+// ============================================
+async function makeOrder() {
+  if (!currentProduct) {
+    alert("Selecione um produto primeiro!");
+    return;
+  }
+
+  const confirmBtn = document.getElementById("confirm-order");
+  const originalText = confirmBtn.textContent;
+  
+  // 1. Bloqueia o botão para evitar cliques duplos
+  confirmBtn.textContent = "⏳ Enviando...";
+  confirmBtn.disabled = true;
+
+  try {
+    // 2. Captura o número da mesa da URL (?mesa=7)
+    const urlParams = new URLSearchParams(window.location.search);
+    let tableNumber = parseInt(urlParams.get("mesa"));
+    
+    // Fallback caso não tenha mesa na URL
+    if (isNaN(tableNumber)) {
+      tableNumber = 1; 
+      console.warn("Mesa não encontrada na URL, usando mesa 1 padrão.");
+    }
+
+    // 3. Monta o objeto EXATAMENTE como o seu CreateOrderDto espera
+    const orderData = {
+      tableNumber: tableNumber,
+      productId: String(currentProduct.id), // O DTO espera string
+      productName: currentProduct.name,
+      productPrice: currentProduct.price,
+      quantity: currentQuantity,
+      observation: "", // Pode adicionar um campo de texto no HTML depois
+      status: 'pending'
+    };
+
+    console.log("🚀 Enviando pedido:", orderData);
+
+    // 4. Chamada Fetch para o NestJS
+    const response = await fetch(`${BACKEND_URL}/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(orderData),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log("✅ Pedido criado:", result);
+      
+      alert(`Pedido de ${currentQuantity}x ${currentProduct.name} enviado com sucesso!`);
+      
+      // Volta para o menu após o sucesso
+      backToMenu();
+    } else {
+      const errorData = await response.json();
+      alert(`Erro ao fazer pedido: ${errorData.message || 'Erro desconhecido'}`);
+    }
+
+  } catch (error) {
+    console.error("❌ Erro de rede:", error);
+    alert("Não foi possível conectar ao servidor. Verifique se o backend está rodando.");
+  } finally {
+    // Restaura o botão
+    confirmBtn.textContent = originalText;
+    confirmBtn.disabled = false;
+  }
+}
+
+// ============================================
+// CONFIGURAÇÃO DOS EVENTOS
+// ============================================
+// Adicione esta linha no final do seu script ou onde você define os eventos
+document.getElementById("confirm-order").onclick = makeOrder;
+
+document.getElementById("confirm-order").onclick = makeOrder;
+
       // INICIALIZAÇÃO AO CARREGAR PÁGINA
       window.addEventListener("load", () => {
         // Pega número da mesa da URL (?mesa=2)

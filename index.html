@@ -1,411 +1,492 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Cardápio AR - Restaurante</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Cardápio AR - Restaurante</title>
 
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 
-  <!-- AR.js -->
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <!-- AR.js -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-  <!-- Gesture support -->
-  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
-  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
+    <!-- Gesture support -->
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
 
-  <!-- Socket.IO -->
-  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
 
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, Helvetica, sans-serif;
+      }
 
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: Arial, Helvetica, sans-serif;
-    }
+      /* Tela do Cardápio */
+      #menu-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        z-index: 100;
+        overflow-y: auto;
+        transition: transform 0.4s ease;
+        transform: translateX(0);
+      }
+      #menu-screen.hide {
+        transform: translateX(-100%);
+      }
 
-    /* Tela do Cardápio */
-    #menu-screen {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      z-index: 100;
-      overflow-y: auto;
-      transition: transform 0.4s ease;
-      transform: translateX(0);
-    }
+      .header {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 20px;
+        text-align: center;
+        color: white;
+      }
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+      .table-info {
+        font-size: 18px;
+        background: rgba(255, 255, 255, 0.2);
+        display: inline-block;
+        padding: 5px 20px;
+        border-radius: 25px;
+      }
 
-    #menu-screen.hide {
-      transform: translateX(-100%);
-    }
+      .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .product-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+      .product-card:hover {
+        transform: translateY(-5px);
+      }
+      .product-image {
+        width: 100%;
+        height: 200px;
+        background: #f5f5f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 80px;
+      }
+      .product-info {
+        padding: 15px;
+      }
+      .product-info h3 {
+        font-size: 18px;
+        margin-bottom: 8px;
+        color: #333;
+      }
+      .product-info p {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 10px;
+      }
+      .product-price {
+        font-size: 22px;
+        font-weight: bold;
+        color: #4caf50;
+      }
+      .select-btn {
+        width: 100%;
+        padding: 12px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .footer {
+        text-align: center;
+        padding: 20px;
+        color: white;
+        background: rgba(0, 0, 0, 0.3);
+      }
 
-    .header {
-      background: rgba(0, 0, 0, 0.3);
-      padding: 20px;
-      text-align: center;
-      color: white;
-    }
+      /* Botão Voltar */
+      #back-btn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-size: 16px;
+        cursor: pointer;
+        z-index: 200;
+        backdrop-filter: blur(5px);
+        display: none;
+        font-weight: bold;
+      }
 
-    .header h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
+      /* Painel de Pedido */
+      #order-panel {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 15px;
+        z-index: 200;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+      }
+      #order-panel.show {
+        transform: translateY(0);
+      }
 
-    .table-info {
-      font-size: 18px;
-      background: rgba(255, 255, 255, 0.2);
-      display: inline-block;
-      padding: 5px 20px;
-      border-radius: 25px;
-    }
+      .product-info-ar {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        color: white;
+      }
+      .product-name-ar {
+        font-size: 18px;
+        font-weight: bold;
+      }
+      .product-price-ar {
+        font-size: 18px;
+        color: #4caf50;
+      }
+      .order-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .quantity-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 5px 15px;
+        border-radius: 25px;
+      }
+      .qty-btn {
+        background: white;
+        color: #333;
+        border: none;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      #quantity {
+        color: white;
+        font-size: 18px;
+        min-width: 35px;
+        text-align: center;
+        font-weight: bold;
+      }
+      .confirm-btn {
+        flex: 1;
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 25px;
+        font-size: 16px;
+        cursor: pointer;
+        font-weight: bold;
+      }
 
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 20px;
-      padding: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+      /* Notificação */
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 15px;
+        z-index: 1000;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+      }
+      .notification.show {
+        transform: translateX(0);
+      }
+      .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        color: white;
+      }
 
-    .product-card {
-      background: white;
-      border-radius: 15px;
-      overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      cursor: pointer;
-      transition: transform 0.3s ease;
-    }
-
-    .product-card:hover {
-      transform: translateY(-5px);
-    }
-
-    .product-image {
-      width: 100%;
-      height: 200px;
-      background: #f5f5f5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 80px;
-    }
-
-    .product-info {
-      padding: 15px;
-    }
-
-    .product-info h3 {
-      font-size: 18px;
-      margin-bottom: 8px;
-      color: #333;
-    }
-
-    .product-info p {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 10px;
-    }
-
-    .product-price {
-      font-size: 22px;
-      font-weight: bold;
-      color: #4CAF50;
-    }
-
-    .select-btn {
-      width: 100%;
-      padding: 12px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      font-size: 16px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background 0.3s ease;
-    }
-
-    .select-btn:hover {
-      background: #45a049;
-    }
-
-    .footer {
-      text-align: center;
-      padding: 20px;
-      color: white;
-      background: rgba(0, 0, 0, 0.3);
-    }
-
-    /* Botão Voltar */
-    #back-btn {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 30px;
-      font-size: 16px;
-      cursor: pointer;
-      z-index: 200;
-      backdrop-filter: blur(5px);
-      display: none;
-      font-weight: bold;
-    }
-
-    /* Painel de Pedido */
-    #order-panel {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      right: 20px;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-      padding: 15px;
-      z-index: 200;
-      transform: translateY(100%);
-      transition: transform 0.3s ease;
-      pointer-events: auto;
-    }
-
-    #order-panel.show {
-      transform: translateY(0);
-    }
-
-    .product-info-ar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      color: white;
-    }
-
-    .product-name-ar {
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    .product-price-ar {
-      font-size: 18px;
-      color: #4CAF50;
-    }
-
-    .order-controls {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .quantity-control {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(255, 255, 255, 0.2);
-      padding: 5px 15px;
-      border-radius: 25px;
-    }
-
-    .qty-btn {
-      background: white;
-      color: #333;
-      border: none;
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      font-size: 20px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    #quantity {
-      color: white;
-      font-size: 18px;
-      min-width: 35px;
-      text-align: center;
-      font-weight: bold;
-    }
-
-    .confirm-btn {
-      flex: 1;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 25px;
-      font-size: 16px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    /* Notificação */
-    .notification {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 12px;
-      padding: 15px;
-      z-index: 1000;
-      transform: translateX(400px);
-      transition: transform 0.3s ease;
-    }
-
-    .notification.show {
-      transform: translateX(0);
-    }
-
-    .notification-content {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      color: white;
-    }
-
-    /* Status */
-    .camera-status {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.6);
-      color: #ff9800;
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-size: 11px;
-      z-index: 200;
-    }
-
-    .ar-instructions {
-      position: absolute;
-      bottom: 100px;
-      left: 20px;
-      right: 20px;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      padding: 10px;
-      border-radius: 10px;
-      text-align: center;
-      font-size: 12px;
-      z-index: 200;
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <!-- Tela do Cardápio -->
-  <div id="menu-screen">
-    <div class="header">
-      <h1>🍽️ Cardápio AR</h1>
-      <div class="table-info">Mesa <span id="table-number">1</span></div>
+      /* Status */
+      .camera-status {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #ff9800;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        z-index: 200;
+      }
+      .ar-instructions {
+        position: absolute;
+        bottom: 100px;
+        left: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 12px;
+        z-index: 200;
+        display: none;
+      }
+      .config-panel {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 10px;
+        z-index: 300;
+        display: flex;
+        gap: 10px;
+      }
+      .config-panel input {
+        padding: 8px;
+        border-radius: 5px;
+        border: none;
+        width: 200px;
+        font-size: 12px;
+      }
+      .config-panel button {
+        padding: 8px 12px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Painel de Configuração do Backend -->
+    <div class="config-panel">
+      <input
+        type="text"
+        id="backend-url"
+        placeholder="URL do Backend"
+        value="http://192.168.30.106:3000"
+      />
+      <button id="save-url">Salvar</button>
     </div>
-    <div id="product-list" class="product-grid">
-      <div class="loading" style="text-align: center; padding: 40px; color: white;">Carregando...</div>
-    </div>
-    <div class="footer">
-      <p>📱 Toque em um produto para ver em Realidade Aumentada!</p>
-      <p style="font-size: 12px;">🔍 <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" target="_blank" style="color: #ff9800;">Baixar Marcador HIRO</a></p>
-    </div>
-  </div>
 
-  <button id="back-btn">← Voltar ao Cardápio</button>
-
-  <div id="order-panel">
-    <div class="product-info-ar">
-      <span id="ar-product-name" class="product-name-ar">---</span>
-      <span id="ar-product-price" class="product-price-ar">R$ --,--</span>
-    </div>
-    <div class="order-controls">
-      <div class="quantity-control">
-        <button id="decrease-qty" class="qty-btn">-</button>
-        <span id="quantity">1</span>
-        <button id="increase-qty" class="qty-btn">+</button>
+    <div id="menu-screen">
+      <div class="header">
+        <h1>🍽️ Cardápio AR</h1>
+        <div class="table-info">Mesa <span id="table-number">1</span></div>
       </div>
-      <button id="confirm-order" class="confirm-btn">📝 Fazer Pedido</button>
-    </div>
-  </div>
-
-  <div class="camera-status" id="camera-status">📷 Aguardando...</div>
-  <div class="ar-instructions" id="ar-instructions">🎯 Aponte a câmera para o marcador HIRO</div>
-
-  <div id="notification" class="notification">
-    <div class="notification-content">
-      <div class="notification-icon">🎉</div>
-      <div class="notification-text">
-        <h3>Pedido Pronto!</h3>
-        <p id="notification-message"></p>
+      <div id="product-list" class="product-grid">
+        <div
+          class="loading"
+          style="text-align: center; padding: 40px; color: white"
+        >
+          Carregando...
+        </div>
+      </div>
+      <div class="footer">
+        <p>📱 Toque em um produto para ver em Realidade Aumentada!</p>
+        <p style="font-size: 12px">
+          🔍
+          <a
+            href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
+            target="_blank"
+            style="color: #ff9800"
+            >Baixar Marcador HIRO</a
+          >
+        </p>
+        <p style="font-size: 11px; margin-top: 5px">
+          ⚙️ Configure a URL do backend no canto superior direito
+        </p>
       </div>
     </div>
-  </div>
 
-  <!-- Cena AR CORRIGIDA -->
-  <a-scene 
-    id="ar-scene"
-    embedded 
-    arjs="sourceType: webcam; debugUIEnabled: true;"
-    vr-mode-ui="enabled: false"
-    style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"
-  >
-    <a-entity camera></a-entity>
-    
-    <a-marker preset="hiro">
-      <a-entity
-        id="ar-model"
-        class="tocavel"
-        gesture-handler="enabled: true"
-        scale="0.3 0.3 0.3"
-        position="0 0 0"
-        rotation="0 0 0"
-      ></a-entity>
-      <a-box id="fallback-cube" color="#FF6B6B" width="0.5" height="0.5" depth="0.5" opacity="0.5"></a-box>
-    </a-marker>
-    
-    <!-- Luzes para iluminar o modelo -->
-    <a-light type="ambient" intensity="0.8"></a-light>
-    <a-light type="directional" intensity="0.6" position="1 2 1"></a-light>
-  </a-scene>
+    <button id="back-btn">← Voltar ao Cardápio</button>
 
-  <script>
-    const products = [
-      { id: 1, name: "Hambúrguer Artesanal", description: "Pão brioche, carne 180g, queijo, bacon", price: 32.90, modelFile: "hamburguer.glb", emoji: "🍔", color: "#ff9800" },
-      { id: 2, name: "Pizza Margherita", description: "Molho, mussarela, manjericão", price: 45.90, modelFile: "pizza.glb", emoji: "🍕", color: "#f44336" },
-      { id: 3, name: "Refrigerante", description: "Coca-Cola 350ml", price: 7.50, modelFile: "soda.glb", emoji: "🥤", color: "#2196f3" }
-    ];
+    <div id="order-panel">
+      <div class="product-info-ar">
+        <span id="ar-product-name" class="product-name-ar">---</span>
+        <span id="ar-product-price" class="product-price-ar">R$ --,--</span>
+      </div>
+      <div class="order-controls">
+        <div class="quantity-control">
+          <button id="decrease-qty" class="qty-btn">-</button>
+          <span id="quantity">1</span>
+          <button id="increase-qty" class="qty-btn">+</button>
+        </div>
+        <button id="confirm-order" class="confirm-btn">📝 Fazer Pedido</button>
+      </div>
+    </div>
 
-    let currentProduct = null;
-    let currentQuantity = 1;
+    <div class="camera-status" id="camera-status">📷 Aguardando...</div>
+    <div class="ar-instructions" id="ar-instructions">
+      🎯 Aponte a câmera para o marcador HIRO
+    </div>
 
-    function showNotification(msg) {
-      const notif = document.getElementById('notification');
-      document.getElementById('notification-message').textContent = msg;
-      notif.classList.add('show');
-      setTimeout(() => notif.classList.remove('show'), 3000);
-    }
+    <div id="notification" class="notification">
+      <div class="notification-content">
+        <div class="notification-icon">🎉</div>
+        <div class="notification-text">
+          <h3>Pedido Pronto!</h3>
+          <p id="notification-message"></p>
+        </div>
+      </div>
+    </div>
 
-    function updateStatus(msg, isError = false) {
-      const status = document.getElementById('camera-status');
-      status.textContent = msg;
-      status.style.color = isError ? '#F44336' : '#ff9800';
-    }
+    <!-- Cena AR -->
+    <a-scene
+      id="ar-scene"
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false;"
+      vr-mode-ui="enabled: false"
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      "
+    >
+      <a-entity camera></a-entity>
+      <a-marker preset="hiro">
+        <a-entity
+          id="ar-model"
+          class="tocavel"
+          gesture-handler="enabled: true"
+          scale="0.3 0.3 0.3"
+          position="0 0 0"
+          rotation="0 0 0"
+        ></a-entity>
+        <a-box
+          id="fallback-cube"
+          color="#FF6B6B"
+          width="0.5"
+          height="0.5"
+          depth="0.5"
+          opacity="0.5"
+        ></a-box>
+      </a-marker>
+      <a-light type="ambient" intensity="0.8"></a-light>
+      <a-light type="directional" intensity="0.6" position="1 2 1"></a-light>
+    </a-scene>
 
-    function renderProducts() {
-      const container = document.getElementById('product-list');
-      container.innerHTML = '';
-      
-      products.forEach(p => {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.innerHTML = `
+    <script>
+      const products = [
+        {
+          id: 1,
+          name: "Hambúrguer Artesanal",
+          description: "Pão brioche, carne 180g, queijo, bacon",
+          price: 32.9,
+          modelFile: "hamburguer.glb",
+          emoji: "🍔",
+          color: "#ff9800",
+        },
+        {
+          id: 2,
+          name: "Pizza Margherita",
+          description: "Molho, mussarela, manjericão",
+          price: 45.9,
+          modelFile: "pizza.glb",
+          emoji: "🍕",
+          color: "#f44336",
+        },
+        {
+          id: 3,
+          name: "Refrigerante",
+          description: "Coca-Cola 350ml",
+          price: 7.5,
+          modelFile: "soda.glb",
+          emoji: "🥤",
+          color: "#2196f3",
+        },
+      ];
+
+      let currentProduct = null;
+      let currentQuantity = 1;
+      let BACKEND_URL =
+        localStorage.getItem("backend_url") || "http://192.168.30.106:3000";
+
+      function showNotification(msg, isSuccess = true) {
+        const notif = document.getElementById("notification");
+        const msgElement = document.getElementById("notification-message");
+        const icon = notif.querySelector(".notification-icon");
+
+        msgElement.textContent = msg;
+        if (isSuccess) {
+          icon.textContent = "✅";
+          notif.style.background =
+            "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)";
+        } else {
+          icon.textContent = "❌";
+          notif.style.background =
+            "linear-gradient(135deg, #F44336 0%, #d32f2f 100%)";
+        }
+
+        notif.classList.add("show");
+        setTimeout(() => {
+          notif.classList.remove("show");
+          notif.style.background =
+            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+          icon.textContent = "🎉";
+        }, 3000);
+      }
+
+      function updateStatus(msg, isError = false) {
+        const status = document.getElementById("camera-status");
+        status.textContent = msg;
+        status.style.color = isError ? "#F44336" : "#ff9800";
+      }
+
+      function renderProducts() {
+        const container = document.getElementById("product-list");
+        container.innerHTML = "";
+
+        products.forEach((p) => {
+          const card = document.createElement("div");
+          card.className = "product-card";
+          card.innerHTML = `
           <div class="product-image" style="background: ${p.color}20;"><span style="font-size:64px;">${p.emoji}</span></div>
           <div class="product-info">
             <h3>${p.name}</h3>
@@ -414,118 +495,175 @@
           </div>
           <button class="select-btn" data-id="${p.id}">🔍 Ver em 3D</button>
         `;
-        card.querySelector('.select-btn').onclick = () => selectProduct(p.id);
-        container.appendChild(card);
-      });
-    }
+          card.querySelector(".select-btn").onclick = () => selectProduct(p.id);
+          container.appendChild(card);
+        });
+      }
 
-    function loadModel(modelFile) {
-      const modelEntity = document.getElementById('ar-model');
-      const fallback = document.getElementById('fallback-cube');
-      
-      while (modelEntity.firstChild) modelEntity.removeChild(modelEntity.firstChild);
-      if (fallback) fallback.setAttribute('visible', 'true');
-      
-      const model = document.createElement('a-entity');
-      model.setAttribute('gltf-model', `url(/assets/models/${modelFile})`);
-      model.setAttribute('scale', '0.3 0.3 0.3');
-      model.setAttribute('position', '0 0 0');
-      model.setAttribute('rotation', '0 0 0');
-      model.setAttribute('class', 'tocavel');
-      model.setAttribute('gesture-handler', 'enabled: true');
-      
-      model.addEventListener('model-loaded', () => {
-        console.log('✅ Modelo carregado:', modelFile);
-        if (fallback) fallback.setAttribute('visible', 'false');
-        updateStatus(`✅ ${currentProduct?.name} - Aponte para o marcador`);
-      });
-      
-      model.addEventListener('model-error', () => {
-        console.error('❌ Erro:', modelFile);
-        updateStatus(`❌ Modelo não encontrado`, true);
-      });
-      
-      modelEntity.appendChild(model);
-    }
+      function loadModel(modelFile) {
+        const modelEntity = document.getElementById("ar-model");
+        const fallback = document.getElementById("fallback-cube");
 
-    function selectProduct(id) {
-      currentProduct = products.find(p => p.id === id);
-      if (!currentProduct) return;
-      
-      currentQuantity = 1;
-      document.getElementById('quantity').textContent = '1';
-      document.getElementById('ar-product-name').textContent = currentProduct.name;
-      document.getElementById('ar-product-price').textContent = `R$ ${currentProduct.price.toFixed(2)}`;
-      
-      loadModel(currentProduct.modelFile);
-      
-      document.getElementById('menu-screen').classList.add('hide');
-      document.getElementById('back-btn').style.display = 'block';
-      document.getElementById('order-panel').classList.add('show');
-      document.getElementById('ar-instructions').style.display = 'block';
-      
-      updateStatus('🎯 Aponte a câmera para o marcador HIRO');
-    }
+        while (modelEntity.firstChild)
+          modelEntity.removeChild(modelEntity.firstChild);
+        if (fallback) fallback.setAttribute("visible", "true");
 
-    function backToMenu() {
-      document.getElementById('menu-screen').classList.remove('hide');
-      document.getElementById('back-btn').style.display = 'none';
-      document.getElementById('order-panel').classList.remove('show');
-      document.getElementById('ar-instructions').style.display = 'none';
-      updateStatus('📱 Cardápio');
-    }
+        const model = document.createElement("a-entity");
+        model.setAttribute("gltf-model", `url(/assets/models/${modelFile})`);
+        model.setAttribute("scale", "0.3 0.3 0.3");
+        model.setAttribute("position", "0 0 0");
+        model.setAttribute("rotation", "0 0 0");
+        model.setAttribute("class", "tocavel");
+        model.setAttribute("gesture-handler", "enabled: true");
 
-    async function makeOrder() {
-      if (!currentProduct) return;
-      try {
-        const res = await fetch(`${window.location.origin}/api/orders`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        model.addEventListener("model-loaded", () => {
+          if (fallback) fallback.setAttribute("visible", "false");
+          updateStatus(`✅ ${currentProduct?.name} - Aponte para o marcador`);
+        });
+
+        model.addEventListener("model-error", () => {
+          updateStatus(`⚠️ Modelo não encontrado: ${modelFile}`, true);
+        });
+
+        modelEntity.appendChild(model);
+      }
+
+      function selectProduct(id) {
+        currentProduct = products.find((p) => p.id === id);
+        if (!currentProduct) return;
+
+        currentQuantity = 1;
+        document.getElementById("quantity").textContent = "1";
+        document.getElementById("ar-product-name").textContent =
+          currentProduct.name;
+        document.getElementById("ar-product-price").textContent =
+          `R$ ${currentProduct.price.toFixed(2)}`;
+
+        loadModel(currentProduct.modelFile);
+
+        document.getElementById("menu-screen").classList.add("hide");
+        document.getElementById("back-btn").style.display = "block";
+        document.getElementById("order-panel").classList.add("show");
+        document.getElementById("ar-instructions").style.display = "block";
+
+        updateStatus("🎯 Aponte a câmera para o marcador HIRO");
+      }
+
+      function backToMenu() {
+        document.getElementById("menu-screen").classList.remove("hide");
+        document.getElementById("back-btn").style.display = "none";
+        document.getElementById("order-panel").classList.remove("show");
+        document.getElementById("ar-instructions").style.display = "none";
+        updateStatus("📱 Cardápio");
+      }
+
+      async function makeOrder() {
+        if (!currentProduct) {
+          showNotification("❌ Selecione um produto primeiro!", false);
+          return;
+        }
+
+        const confirmBtn = document.getElementById("confirm-order");
+        const originalText = confirmBtn.textContent;
+        confirmBtn.textContent = "⏳ Enviando...";
+        confirmBtn.disabled = true;
+
+        try {
+          const orderData = {
             tableNumber: 1,
             productId: currentProduct.id,
             productName: currentProduct.name,
             productPrice: currentProduct.price,
             quantity: currentQuantity,
-            observation: ''
-          })
-        });
-        if (res.ok) {
-          showNotification(`✅ Pedido de ${currentQuantity}x ${currentProduct.name} enviado!`);
-          setTimeout(backToMenu, 2000);
-        } else throw new Error();
-      } catch(e) {
-        showNotification('❌ Erro ao enviar pedido');
-      }
-    }
+            observation: "",
+          };
 
-    // Eventos
-    document.getElementById('back-btn').onclick = backToMenu;
-    document.getElementById('confirm-order').onclick = makeOrder;
-    document.getElementById('decrease-qty').onclick = () => {
-      if (currentQuantity > 1) {
-        currentQuantity--;
-        document.getElementById('quantity').textContent = currentQuantity;
-      }
-    };
-    document.getElementById('increase-qty').onclick = () => {
-      if (currentQuantity < 99) {
-        currentQuantity++;
-        document.getElementById('quantity').textContent = currentQuantity;
-      }
-    };
+          const url = `${BACKEND_URL}/api/orders`;
+          console.log("📦 Enviando para:", url);
+          console.log("📦 Dados:", orderData);
 
-    // Verificar se a câmera está funcionando
-    setTimeout(() => {
-      const scene = document.querySelector('a-scene');
-      if (scene) {
-        console.log('🎥 Cena AR carregada');
-        updateStatus('📷 Câmera ativa - Toque em um produto');
-      }
-    }, 2000);
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify(orderData),
+          });
 
-    renderProducts();
-    updateStatus('📱 Toque em um produto para começar');
-  </script>
-</body>
+          console.log("📡 Status:", response.status);
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log("✅ Pedido criado:", result);
+            showNotification(
+              `✅ Pedido de ${currentQuantity}x ${currentProduct.name} enviado!`,
+              true,
+            );
+
+            setTimeout(() => {
+              backToMenu();
+            }, 2000);
+          } else {
+            const errorText = await response.text();
+            console.error("❌ Erro resposta:", response.status, errorText);
+            showNotification(
+              `❌ Erro ${response.status}: Servidor não respondeu`,
+              false,
+            );
+          }
+        } catch (error) {
+          console.error("❌ Erro de rede:", error);
+          showNotification(
+            `❌ Erro: Não conseguiu conectar em ${BACKEND_URL}`,
+            false,
+          );
+        } finally {
+          confirmBtn.textContent = originalText;
+          confirmBtn.disabled = false;
+        }
+      }
+
+      // Configurar URL do backend
+      function saveBackendUrl() {
+        const input = document.getElementById("backend-url");
+        BACKEND_URL = input.value.trim();
+        localStorage.setItem("backend_url", BACKEND_URL);
+        showNotification(`✅ Backend configurado: ${BACKEND_URL}`, true);
+        console.log("🔧 Backend URL:", BACKEND_URL);
+      }
+
+      // Carregar URL salva
+      function loadBackendUrl() {
+        const saved = localStorage.getItem("backend_url");
+        if (saved) {
+          BACKEND_URL = saved;
+          document.getElementById("backend-url").value = saved;
+        }
+        console.log("🔧 Backend URL carregada:", BACKEND_URL);
+      }
+
+      // Eventos
+      document.getElementById("back-btn").onclick = backToMenu;
+      document.getElementById("confirm-order").onclick = makeOrder;
+      document.getElementById("save-url").onclick = saveBackendUrl;
+
+      document.getElementById("decrease-qty").onclick = () => {
+        if (currentQuantity > 1) {
+          currentQuantity--;
+          document.getElementById("quantity").textContent = currentQuantity;
+        }
+      };
+      document.getElementById("increase-qty").onclick = () => {
+        if (currentQuantity < 99) {
+          currentQuantity++;
+          document.getElementById("quantity").textContent = currentQuantity;
+        }
+      };
+
+      loadBackendUrl();
+      renderProducts();
+      updateStatus("📱 Toque em um produto para começar");
+    </script>
+  </body>
 </html>

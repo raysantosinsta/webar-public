@@ -1,238 +1,639 @@
 <!doctype html>
 <html lang="pt-br">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cardápio AR - Restaurante</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Cardápio AR - Restaurante</title>
 
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <!-- Gestos -->
-  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
-  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { margin: 0; overflow: hidden; font-family: Arial, Helvetica, sans-serif; }
+    <!-- AR.js -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-    #menu-screen {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      z-index: 100; overflow-y: auto;
-    }
-    #menu-screen.hide { transform: translateX(-100%); }
+    <!-- Gesture support -->
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
 
-    .header { background: rgba(0,0,0,0.3); padding: 20px; text-align: center; color: white; }
-    .header h1 { font-size: 28px; margin-bottom: 10px; }
-    .table-info { font-size: 18px; background: rgba(255,255,255,0.2); padding: 5px 20px; border-radius: 25px; }
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
 
-    .product-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto;
-    }
-    .product-card {
-      background: white; border-radius: 15px; overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer;
-    }
-    .product-image {
-      height: 200px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; font-size: 80px;
-    }
-    .select-btn {
-      width: 100%; padding: 12px; background: #4caf50; color: white; border: none; font-size: 16px; cursor: pointer;
-    }
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, Helvetica, sans-serif;
+      }
 
-    #back-btn {
-      position: absolute; top: 20px; left: 20px; z-index: 200;
-      background: rgba(0,0,0,0.7); color: white; border: none; padding: 12px 24px; border-radius: 30px; display: none;
-    }
+      /* Tela do Cardápio */
+      #menu-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        z-index: 100;
+        overflow-y: auto;
+        transition: transform 0.4s ease;
+        transform: translateX(0);
+      }
+      #menu-screen.hide {
+        transform: translateX(-100%);
+      }
 
-    #order-panel {
-      position: absolute; bottom: 20px; left: 20px; right: 20px;
-      background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-radius: 15px; padding: 15px;
-      z-index: 200; transform: translateY(100%); transition: transform 0.3s ease;
-    }
-    #order-panel.show { transform: translateY(0); }
+      .header {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 20px;
+        text-align: center;
+        color: white;
+      }
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+      .table-info {
+        font-size: 18px;
+        background: rgba(255, 255, 255, 0.2);
+        display: inline-block;
+        padding: 5px 20px;
+        border-radius: 25px;
+      }
 
-    .camera-status {
-      position: absolute; bottom: 10px; right: 10px;
-      background: rgba(0,0,0,0.6); color: #ff9800; padding: 5px 10px; border-radius: 8px; font-size: 11px; z-index: 200;
-    }
-  </style>
-</head>
-<body>
+      .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .product-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+      .product-card:hover {
+        transform: translateY(-5px);
+      }
+      .product-image {
+        width: 100%;
+        height: 200px;
+        background: #f5f5f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 80px;
+      }
+      .product-info {
+        padding: 15px;
+      }
+      .product-info h3 {
+        font-size: 18px;
+        margin-bottom: 8px;
+        color: #333;
+      }
+      .product-info p {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 10px;
+      }
+      .product-price {
+        font-size: 22px;
+        font-weight: bold;
+        color: #4caf50;
+      }
+      .select-btn {
+        width: 100%;
+        padding: 12px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .footer {
+        text-align: center;
+        padding: 20px;
+        color: white;
+        background: rgba(0, 0, 0, 0.3);
+      }
 
-  <div id="menu-screen">
-    <div class="header">
-      <h1>🍽️ Cardápio AR</h1>
-      <div class="table-info">Mesa <span id="table-number">1</span></div>
+      /* Botão Voltar */
+      #back-btn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-size: 16px;
+        cursor: pointer;
+        z-index: 200;
+        backdrop-filter: blur(5px);
+        display: none;
+        font-weight: bold;
+      }
+
+      /* Painel de Pedido */
+      #order-panel {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 15px;
+        z-index: 200;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+      }
+      #order-panel.show {
+        transform: translateY(0);
+      }
+
+      .product-info-ar {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        color: white;
+      }
+      .product-name-ar {
+        font-size: 18px;
+        font-weight: bold;
+      }
+      .product-price-ar {
+        font-size: 18px;
+        color: #4caf50;
+      }
+      .order-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .quantity-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 5px 15px;
+        border-radius: 25px;
+      }
+      .qty-btn {
+        background: white;
+        color: #333;
+        border: none;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      #quantity {
+        color: white;
+        font-size: 18px;
+        min-width: 35px;
+        text-align: center;
+        font-weight: bold;
+      }
+      .confirm-btn {
+        flex: 1;
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 25px;
+        font-size: 16px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+
+      /* Notificação */
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 15px;
+        z-index: 1000;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+      }
+      .notification.show {
+        transform: translateX(0);
+      }
+      .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        color: white;
+      }
+
+      /* Status */
+      .camera-status {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #ff9800;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        z-index: 200;
+      }
+      .ar-instructions {
+        position: absolute;
+        bottom: 100px;
+        left: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 12px;
+        z-index: 200;
+        display: none;
+      }
+      .config-panel {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 10px;
+        z-index: 300;
+        display: flex;
+        gap: 10px;
+      }
+      .config-panel input {
+        padding: 8px;
+        border-radius: 5px;
+        border: none;
+        width: 200px;
+        font-size: 12px;
+      }
+      .config-panel button {
+        padding: 8px 12px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="config-panel">
+      <input
+        type="text"
+        id="backend-url"
+        placeholder="URL do Backend"
+        value="http://192.168.30.106:3000"
+      />
+      <button id="save-url">Salvar</button>
     </div>
-    <div id="product-list" class="product-grid"></div>
-  </div>
 
-  <button id="back-btn">← Voltar ao Cardápio</button>
-
-  <div id="order-panel">
-    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: white;">
-      <span id="ar-product-name" style="font-weight: bold;">---</span>
-      <span id="ar-product-price" style="color: #4caf50;">R$ --,--</span>
-    </div>
-    <div style="display: flex; gap: 10px; align-items: center;">
-      <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 25px;">
-        <button id="decrease-qty" style="width:35px; height:35px; border-radius:50%; border:none; background:white;">-</button>
-        <span id="quantity" style="color:white; font-weight:bold; min-width:30px; text-align:center;">1</span>
-        <button id="increase-qty" style="width:35px; height:35px; border-radius:50%; border:none; background:white;">+</button>
+    <div id="menu-screen">
+      <div class="header">
+        <h1>🍽️ Cardápio AR</h1>
+        <div class="table-info">Mesa <span id="table-number">1</span></div>
       </div>
-      <button id="confirm-order" style="flex:1; background:#4caf50; color:white; border:none; padding:12px; border-radius:25px; font-weight:bold;">
-        📝 Fazer Pedido
-      </button>
+      <div id="product-list" class="product-grid">
+        <div
+          class="loading"
+          style="text-align: center; padding: 40px; color: white"
+        >
+          Carregando...
+        </div>
+      </div>
+      <div class="footer">
+        <p>📱 Toque em um produto para ver em Realidade Aumentada!</p>
+        <p style="font-size: 12px">
+          🔍
+          <a
+            href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
+            target="_blank"
+            style="color: #ff9800"
+            >Baixar Marcador HIRO</a
+          >
+        </p>
+      </div>
     </div>
-  </div>
 
-  <div class="camera-status" id="camera-status">📷 Aguardando...</div>
+    <button id="back-btn">← Voltar ao Cardápio</button>
 
-  <!-- Cena A-Frame -->
-  <a-scene 
-    id="ar-scene" 
-    embedded 
-    vr-mode-ui="enabled: false" 
-    background="color: #111111"
-    style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"
-  >
-    <a-entity camera position="0 0 0"></a-entity>
+    <div id="order-panel">
+      <div class="product-info-ar">
+        <span id="ar-product-name" class="product-name-ar">---</span>
+        <span id="ar-product-price" class="product-price-ar">R$ --,--</span>
+      </div>
+      <div class="order-controls">
+        <div class="quantity-control">
+          <button id="decrease-qty" class="qty-btn">-</button>
+          <span id="quantity">1</span>
+          <button id="increase-qty" class="qty-btn">+</button>
+        </div>
+        <button id="confirm-order" class="confirm-btn">📝 Fazer Pedido</button>
+      </div>
+    </div>
 
-    <a-entity 
-      id="ar-model" 
-      gesture-handler="enabled: true"
+    <div class="camera-status" id="camera-status">📷 Aguardando...</div>
+    <div class="ar-instructions" id="ar-instructions">
+      🎯 Aponte a câmera para o marcador HIRO
+    </div>
+
+    <div id="notification" class="notification">
+      <div class="notification-content">
+        <div class="notification-icon">🎉</div>
+        <div class="notification-text">
+          <h3>Pedido Pronto!</h3>
+          <p id="notification-message"></p>
+        </div>
+      </div>
+    </div>
+
+<a-scene
+  id="ar-scene"
+  embedded
+  vr-mode-ui="enabled: false"
+  arjs="sourceType: webcam; debugUIEnabled: false;"
+  gesture-detector
+>
+  <a-marker preset="hiro" raycaster="objects: .clickable" emitevents="true" cursor="fuse: false; rayOrigin: mouse;">
+    <a-entity
+      id="ar-model"
+      gesture-handler
+      position="0 0 0"
+      scale="0.22 0.22 0.22"
     ></a-entity>
+  </a-marker>
 
-    <a-light type="ambient" intensity="1.0"></a-light>
-    <a-light type="directional" intensity="0.8" position="1 2 1"></a-light>
-  </a-scene>
+  <a-entity camera></a-entity>
+</a-scene>
 
-  <script>
-    const products = [
-      { id: 1, name: "Hambúrguer Artesanal", price: 32.9, modelFile: "hamburguer.glb" },
-      { id: 2, name: "Pizza Margherita",     price: 45.9, modelFile: "pizza.glb" },
-      { id: 3, name: "Refrigerante",         price: 7.5,  modelFile: "soda.glb" }
-    ];
+   <script>
+  const products = [
+    {
+      id: 1,
+      name: "Hambúrguer Artesanal",
+      description: "Pão brioche, carne 180g, queijo, bacon",
+      price: 32.9,
+      modelFile: "hamburguer.glb",
+      emoji: "🍔",
+      color: "#ff9800",
+    },
+    {
+      id: 2,
+      name: "Pizza Margherita",
+      description: "Molho, mussarela, manjericão",
+      price: 45.9,
+      modelFile: "pizza.glb",
+      emoji: "🍕",
+      color: "#f44336",
+    },
+    {
+      id: 3,
+      name: "Refrigerante",
+      description: "Coca-Cola 350ml",
+      price: 7.5,
+      modelFile: "soda.glb",
+      emoji: "🥤",
+      color: "#2196f3",
+    },
+  ];
 
-    let currentProduct = null;
-    let currentQuantity = 1;
-    let BACKEND_URL = localStorage.getItem("backend_url") || "http://localhost:3000";
+  let currentProduct = null;
+  let currentQuantity = 1;
+  let BACKEND_URL = localStorage.getItem("backend_url") || "http://192.168.30.106:3000";
 
-    function updateStatus(msg) {
-      document.getElementById("camera-status").textContent = msg;
+  function showNotification(msg, isSuccess = true) {
+    const notif = document.getElementById("notification");
+    const msgElement = document.getElementById("notification-message");
+    const icon = notif.querySelector(".notification-icon");
+
+    msgElement.textContent = msg;
+    if (isSuccess) {
+      icon.textContent = "✅";
+      notif.style.background = "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)";
+    } else {
+      icon.textContent = "❌";
+      notif.style.background = "linear-gradient(135deg, #F44336 0%, #d32f2f 100%)";
     }
 
-    function renderProducts() {
-      const container = document.getElementById("product-list");
-      container.innerHTML = "";
+    notif.classList.add("show");
+    setTimeout(() => {
+      notif.classList.remove("show");
+      notif.style.background = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+      icon.textContent = "🎉";
+    }, 3000);
+  }
 
-      products.forEach(p => {
-        const card = document.createElement("div");
-        card.className = "product-card";
-        card.innerHTML = `
-          <div class="product-image">${p.name.includes("Hambúrguer") ? "🍔" : p.name.includes("Pizza") ? "🍕" : "🥤"}</div>
-          <div style="padding:15px;">
-            <h3>${p.name}</h3>
-            <div style="font-size:22px; font-weight:bold; color:#4caf50;">R$ ${p.price.toFixed(2)}</div>
-          </div>
-          <button class="select-btn">🔍 Ver em 3D</button>
-        `;
-        card.querySelector(".select-btn").onclick = () => selectProduct(p.id);
-        container.appendChild(card);
-      });
-    }
+  function updateStatus(msg, isError = false) {
+    const status = document.getElementById("camera-status");
+    status.textContent = msg;
+    status.style.color = isError ? "#F44336" : "#ff9800";
+  }
 
-    function loadModel(modelFile) {
-      const modelEntity = document.getElementById("ar-model");
-      while (modelEntity.firstChild) modelEntity.removeChild(modelEntity.firstChild);
+  function renderProducts() {
+    const container = document.getElementById("product-list");
+    container.innerHTML = "";
 
-      const modelPath = `assets/models/${modelFile}`;
-      console.log(`🔍 Carregando modelo: ${modelPath}`);
-
-      const model = document.createElement("a-entity");
-      model.setAttribute("gltf-model", `url(${modelPath})`);
-      model.setAttribute("scale", "0.22 0.22 0.22");     // menor
-      model.setAttribute("position", "0 0.2 -1.0");
-
-      // Rotação automática horizontal infinita
-      model.setAttribute("animation", {
-        property: "rotation",
-        to: "0 360 0",
-        dur: 16000,           // 16 segundos por volta
-        easing: "linear",
-        loop: true
-      });
-
-      model.addEventListener("model-loaded", () => {
-        console.log("✅ Modelo carregado com sucesso!");
-        updateStatus(`✅ ${currentProduct?.name} carregado`);
-      });
-
-      model.addEventListener("model-error", () => {
-        console.error("❌ Erro ao carregar o modelo");
-        updateStatus("⚠️ Erro ao carregar modelo", true);
-      });
-
-      modelEntity.appendChild(model);
-    }
-
-    function selectProduct(id) {
-      currentProduct = products.find(p => p.id === id);
-      if (!currentProduct) return;
-
-      currentQuantity = 1;
-      document.getElementById("quantity").textContent = "1";
-      document.getElementById("ar-product-name").textContent = currentProduct.name;
-      document.getElementById("ar-product-price").textContent = `R$ ${currentProduct.price.toFixed(2)}`;
-
-      loadModel(currentProduct.modelFile);
-
-      // Troca de tela
-      document.getElementById("menu-screen").classList.add("hide");
-      document.getElementById("back-btn").style.display = "block";
-      document.getElementById("order-panel").classList.add("show");
-
-      updateStatus("✅ Carregando modelo...");
-    }
-
-    function backToMenu() {
-      document.getElementById("menu-screen").classList.remove("hide");
-      document.getElementById("back-btn").style.display = "none";
-      document.getElementById("order-panel").classList.remove("show");
-      updateStatus("📱 Cardápio");
-    }
-
-    // Eventos
-    document.getElementById("back-btn").onclick = backToMenu;
-
-    document.getElementById("decrease-qty").onclick = () => {
-      if (currentQuantity > 1) currentQuantity--;
-      document.getElementById("quantity").textContent = currentQuantity;
-    };
-
-    document.getElementById("increase-qty").onclick = () => {
-      if (currentQuantity < 99) currentQuantity++;
-      document.getElementById("quantity").textContent = currentQuantity;
-    };
-
-    document.getElementById("confirm-order").onclick = () => {
-      if (!currentProduct) return;
-      alert(`✅ Pedido de ${currentQuantity}x ${currentProduct.name} enviado para a mesa!`);
-      backToMenu();
-    };
-
-    // Inicialização
-    renderProducts();
-    updateStatus("📱 Toque em um produto para começar");
-
-    // Atualiza número da mesa da URL
-    window.addEventListener("load", () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const mesa = parseInt(urlParams.get("mesa")) || 1;
-      document.getElementById("table-number").textContent = mesa;
+    products.forEach((p) => {
+      const card = document.createElement("div");
+      card.className = "product-card";
+      card.innerHTML = `
+        <div class="product-image" style="background: ${p.color}20;">
+          <span style="font-size:64px;">${p.emoji}</span>
+        </div>
+        <div class="product-info">
+          <h3>${p.name}</h3>
+          <p>${p.description}</p>
+          <div class="product-price">R$ ${p.price.toFixed(2)}</div>
+        </div>
+        <button class="select-btn" data-id="${p.id}">🔍 Ver em 3D</button>
+      `;
+      card.querySelector(".select-btn").onclick = () => selectProduct(p.id);
+      container.appendChild(card);
     });
-  </script>
-</body>
+  }
+
+  // ==================== FUNÇÃO CORRIGIDA PARA CARREGAR MODELO ====================
+
+function loadModel(modelFile) {
+  const modelEntity = document.getElementById("ar-model");
+
+  // Limpa tudo antes
+  while (modelEntity.firstChild) {
+    modelEntity.removeChild(modelEntity.firstChild);
+  }
+
+  const modelPath = `assets/models/${modelFile}`;
+  console.log(`🔍 Carregando: ${modelPath}`);
+
+  const model = document.createElement("a-entity");
+  model.setAttribute("gltf-model", `url(${modelPath})`);
+  model.setAttribute("scale", "0.22 0.22 0.22");
+  model.setAttribute("position", "0 0.2 -1.0");
+
+  // Rotação automática horizontal infinita (suave)
+  model.setAttribute("animation", {
+    property: "rotation",
+    to: "0 360 0",
+    dur: 18000,           // 18 segundos por volta (bom equilíbrio)
+    easing: "linear",
+    loop: true
+  });
+
+  // Eventos
+  model.addEventListener("model-loaded", () => {
+    console.log("✅ Modelo carregado com sucesso!");
+    updateStatus(`✅ ${currentProduct?.name} • Arraste para girar`);
+  });
+
+  model.addEventListener("model-error", (err) => {
+    console.error("❌ Erro no modelo:", err);
+    updateStatus(`⚠️ Erro ao carregar ${modelFile}`, true);
+  });
+
+  modelEntity.appendChild(model);
+}
+function selectProduct(id) {
+  const product = products.find(p => p.id === id);
+  if (!product) return;
+
+  currentProduct = product;
+  currentQuantity = 1;
+  
+  // 1. Atualiza UI
+  document.getElementById("quantity").textContent = "1";
+  document.getElementById("ar-product-name").textContent = product.name;
+  document.getElementById("ar-product-price").textContent = `R$ ${product.price.toFixed(2)}`;
+
+  // 2. Carrega o Modelo (Chamando a função que você já tem)
+  loadModel(product.modelFile); 
+
+  // 3. Troca de tela
+  document.getElementById("menu-screen").classList.add("hide");
+  document.getElementById("back-btn").style.display = "block";
+  document.getElementById("order-panel").classList.add("show");
+  document.getElementById("ar-instructions").style.display = "block";
+}
+function backToMenu() {
+    document.getElementById("menu-screen").classList.remove("hide");
+    document.getElementById("back-btn").style.display = "none";
+    document.getElementById("order-panel").classList.remove("show");
+    document.getElementById("ar-instructions").style.display = "none";
+    updateStatus("📱 Cardápio");
+  }
+
+  async function makeOrder() {
+    if (!currentProduct) {
+      showNotification("❌ Selecione um produto primeiro!", false);
+      return;
+    }
+
+    const confirmBtn = document.getElementById("confirm-order");
+    const originalText = confirmBtn.textContent;
+    confirmBtn.textContent = "⏳ Enviando...";
+    confirmBtn.disabled = true;
+
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      let tableNumber = parseInt(urlParams.get("mesa"));
+      if (isNaN(tableNumber) || tableNumber < 1) tableNumber = 1;
+
+      document.getElementById("table-number").textContent = tableNumber;
+
+      const orderData = {
+        tableNumber: tableNumber,
+        productName: currentProduct.name,
+        productPrice: currentProduct.price,
+        quantity: currentQuantity,
+        observation: "",
+      };
+
+      const response = await fetch(`${BACKEND_URL}/api/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      });
+
+      if (response.ok) {
+        showNotification(`✅ Pedido enviado para a Mesa ${tableNumber}!`, true);
+        setTimeout(backToMenu, 1800);
+      } else {
+        const errorText = await response.text().catch(() => "");
+        showNotification(`❌ Erro ${response.status}: ${errorText || "Falha ao enviar"}`, false);
+      }
+    } catch (error) {
+      console.error("❌ Erro de rede:", error);
+      showNotification(`❌ Não conseguiu conectar no backend`, false);
+    } finally {
+      confirmBtn.textContent = originalText;
+      confirmBtn.disabled = false;
+    }
+  }
+
+  function saveBackendUrl() {
+    const input = document.getElementById("backend-url");
+    let url = input.value.trim().replace(/\/$/, "");
+    BACKEND_URL = url;
+    localStorage.setItem("backend_url", BACKEND_URL);
+    showNotification(`✅ Backend configurado: ${BACKEND_URL}`, true);
+  }
+
+  function loadBackendUrl() {
+    const saved = localStorage.getItem("backend_url");
+    if (saved) {
+      BACKEND_URL = saved;
+      document.getElementById("backend-url").value = saved;
+    }
+  }
+
+  // ==================== EVENTOS ====================
+  document.getElementById("back-btn").onclick = backToMenu;
+  document.getElementById("confirm-order").onclick = makeOrder;
+  document.getElementById("save-url").onclick = saveBackendUrl;
+
+  document.getElementById("decrease-qty").onclick = () => {
+    if (currentQuantity > 1) currentQuantity--;
+    document.getElementById("quantity").textContent = currentQuantity;
+  };
+
+  document.getElementById("increase-qty").onclick = () => {
+    if (currentQuantity < 99) currentQuantity++;
+    document.getElementById("quantity").textContent = currentQuantity;
+  };
+
+  // Inicialização
+  loadBackendUrl();
+  renderProducts();
+  updateStatus("📱 Toque em um produto para começar");
+
+  window.addEventListener("load", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    let tableNumber = parseInt(urlParams.get("mesa")) || 1;
+    document.getElementById("table-number").textContent = tableNumber;
+    console.log(`🍽️ Mesa detectada: ${tableNumber}`);
+  });
+</script>
+  </body>
 </html>

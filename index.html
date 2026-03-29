@@ -301,7 +301,6 @@
     </style>
   </head>
   <body>
-    <!-- Painel de Configuração do Backend -->
     <div class="config-panel">
       <input
         type="text"
@@ -335,9 +334,6 @@
             style="color: #ff9800"
             >Baixar Marcador HIRO</a
           >
-        </p>
-        <p style="font-size: 11px; margin-top: 5px">
-          ⚙️ Configure a URL do backend no canto superior direito
         </p>
       </div>
     </div>
@@ -374,7 +370,6 @@
       </div>
     </div>
 
-    <!-- Cena AR -->
     <a-scene
       id="ar-scene"
       embedded
@@ -569,9 +564,9 @@
         confirmBtn.disabled = true;
 
         try {
+          // NÃO enviar productId - apenas productName e price
           const orderData = {
             tableNumber: 1,
-            productId: currentProduct.id,
             productName: currentProduct.name,
             productPrice: currentProduct.price,
             quantity: currentQuantity,
@@ -608,7 +603,7 @@
             const errorText = await response.text();
             console.error("❌ Erro resposta:", response.status, errorText);
             showNotification(
-              `❌ Erro ${response.status}: Servidor não respondeu`,
+              `❌ Erro ${response.status}: ${errorText || "Falha ao enviar"}`,
               false,
             );
           }
@@ -624,16 +619,17 @@
         }
       }
 
-      // Configurar URL do backend
       function saveBackendUrl() {
         const input = document.getElementById("backend-url");
-        BACKEND_URL = input.value.trim();
+        let url = input.value.trim();
+        // Garantir que não tenha barra no final
+        url = url.replace(/\/$/, "");
+        BACKEND_URL = url;
         localStorage.setItem("backend_url", BACKEND_URL);
         showNotification(`✅ Backend configurado: ${BACKEND_URL}`, true);
         console.log("🔧 Backend URL:", BACKEND_URL);
       }
 
-      // Carregar URL salva
       function loadBackendUrl() {
         const saved = localStorage.getItem("backend_url");
         if (saved) {
@@ -643,7 +639,6 @@
         console.log("🔧 Backend URL carregada:", BACKEND_URL);
       }
 
-      // Eventos
       document.getElementById("back-btn").onclick = backToMenu;
       document.getElementById("confirm-order").onclick = makeOrder;
       document.getElementById("save-url").onclick = saveBackendUrl;

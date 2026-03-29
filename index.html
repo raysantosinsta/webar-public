@@ -370,40 +370,29 @@
       </div>
     </div>
 
- <a-scene
+<a-scene
   id="ar-scene"
   embedded
   vr-mode-ui="enabled: false"
+  background="color: #111111"
   style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"
 >
   <!-- Câmera -->
   <a-entity camera position="0 0 0"></a-entity>
 
-  <!-- Container do modelo -->
+  <!-- Modelo 3D -->
   <a-entity
     id="ar-model"
-    class="tocavel"
     gesture-handler="enabled: true"
-    position="0 0.15 -1"     <!-- posição mais central e confortável -->
-    scale="0.25 0.25 0.25"   <!-- ← Modelo bem menor -->
+    position="0 0.2 -1.0"
+    scale="0.22 0.22 0.22"
     rotation="0 0 0"
   ></a-entity>
 
-  <!-- Fallback -->
-  <a-box
-    id="fallback-cube"
-    color="#FF6B6B"
-    width="0.5"
-    height="0.5"
-    depth="0.5"
-    position="0 0.15 -1"
-    opacity="0.3"
-    visible="false"
-  ></a-box>
-
-  <!-- Iluminação -->
-  <a-light type="ambient" intensity="0.9"></a-light>
-  <a-light type="directional" intensity="0.8" position="2 3 2"></a-light>
+  <!-- Iluminação boa -->
+  <a-light type="ambient" intensity="1.0"></a-light>
+  <a-light type="directional" intensity="0.9" position="1 2 1"></a-light>
+  <a-light type="point" intensity="0.6" position="-2 1 -2"></a-light>
 </a-scene>
 
    <script>
@@ -496,76 +485,61 @@
 
 function loadModel(modelFile) {
   const modelEntity = document.getElementById("ar-model");
-  const fallback = document.getElementById("fallback-cube");
 
-  // Limpa modelo anterior
+  // Limpa tudo antes
   while (modelEntity.firstChild) {
     modelEntity.removeChild(modelEntity.firstChild);
   }
 
   const modelPath = `assets/models/${modelFile}`;
-  console.log(`🔍 Carregando modelo: ${modelPath}`);
+  console.log(`🔍 Carregando: ${modelPath}`);
 
   const model = document.createElement("a-entity");
   model.setAttribute("gltf-model", `url(${modelPath})`);
-  model.setAttribute("scale", "0.25 0.25 0.25");        // menor
-  model.setAttribute("position", "0 0.15 -1");
-  model.setAttribute("class", "tocavel");
-  model.setAttribute("gesture-handler", "enabled: true");
+  model.setAttribute("scale", "0.22 0.22 0.22");
+  model.setAttribute("position", "0 0.2 -1.0");
 
-  // ====================== ROTAÇÃO AUTOMÁTICA INFINITA ======================
+  // Rotação automática horizontal infinita (suave)
   model.setAttribute("animation", {
     property: "rotation",
-    to: "0 360 0",           // gira no eixo Y (horizontal)
-    dur: 15000,              // 15 segundos por volta completa (ajuste se quiser mais rápido)
+    to: "0 360 0",
+    dur: 18000,           // 18 segundos por volta (bom equilíbrio)
     easing: "linear",
     loop: true
   });
 
-  // Sucesso
+  // Eventos
   model.addEventListener("model-loaded", () => {
     console.log("✅ Modelo carregado com sucesso!");
-    if (fallback) fallback.setAttribute("visible", "false");
-    updateStatus(`✅ ${currentProduct?.name} carregado • Gire com o dedo`);
+    updateStatus(`✅ ${currentProduct?.name} • Arraste para girar`);
   });
 
-  // Erro
   model.addEventListener("model-error", (err) => {
-    console.error("❌ Erro ao carregar modelo:", err);
+    console.error("❌ Erro no modelo:", err);
     updateStatus(`⚠️ Erro ao carregar ${modelFile}`, true);
-    if (fallback) fallback.setAttribute("visible", "true");
   });
 
   modelEntity.appendChild(model);
 }
-function selectProduct(id) {
-  currentProduct = products.find((p) => p.id === id);
-  if (!currentProduct) return;
 
+function selectProduct(id) {
+  const product = products.find(p => p.id === id);
+  if (!product) return;
+
+  currentProduct = product;
   currentQuantity = 1;
   document.getElementById("quantity").textContent = "1";
-  document.getElementById("ar-product-name").textContent = currentProduct.name;
-  document.getElementById("ar-product-price").textContent = `R$ ${currentProduct.price.toFixed(2)}`;
+  document.getElementById("ar-product-name").textContent = product.name;
+  document.getElementById("ar-product-price").textContent = `R$ ${product.price.toFixed(2)}`;
 
-  loadModel(currentProduct.modelFile);
+  ARController.loadModel(product);   // ← Usando o ARController ajustado
 
-  // Troca de tela
   document.getElementById("menu-screen").classList.add("hide");
   document.getElementById("back-btn").style.display = "block";
   document.getElementById("order-panel").classList.add("show");
-  document.getElementById("ar-instructions").style.display = "block";
 
-  updateStatus(`✅ Carregando ${currentProduct.name}...`);
-
-  // Garantia extra para esconder fallback
-  setTimeout(() => {
-    const fallback = document.getElementById("fallback-cube");
-    if (fallback) fallback.setAttribute("visible", "false");
-  }, 600);
-
-  console.log(`🎯 ${currentProduct.name} carregado`);
+  updateStatus(`✅ Carregando ${product.name}...`);
 }
-  
 
 function backToMenu() {
     document.getElementById("menu-screen").classList.remove("hide");

@@ -407,287 +407,248 @@
       <a-light type="directional" intensity="0.6" position="1 2 1"></a-light>
     </a-scene>
 
-    <script>
-      const products = [
-        {
-          id: 1,
-          name: "Hambúrguer Artesanal",
-          description: "Pão brioche, carne 180g, queijo, bacon",
-          price: 32.9,
-          modelFile: "hamburguer.glb",
-          emoji: "🍔",
-          color: "#ff9800",
-        },
-        {
-          id: 2,
-          name: "Pizza Margherita",
-          description: "Molho, mussarela, manjericão",
-          price: 45.9,
-          modelFile: "pizza.glb",
-          emoji: "🍕",
-          color: "#f44336",
-        },
-        {
-          id: 3,
-          name: "Refrigerante",
-          description: "Coca-Cola 350ml",
-          price: 7.5,
-          modelFile: "soda.glb",
-          emoji: "🥤",
-          color: "#2196f3",
-        },
-      ];
+   <script>
+  const products = [
+    {
+      id: 1,
+      name: "Hambúrguer Artesanal",
+      description: "Pão brioche, carne 180g, queijo, bacon",
+      price: 32.9,
+      modelFile: "hamburguer.glb",
+      emoji: "🍔",
+      color: "#ff9800",
+    },
+    {
+      id: 2,
+      name: "Pizza Margherita",
+      description: "Molho, mussarela, manjericão",
+      price: 45.9,
+      modelFile: "pizza.glb",
+      emoji: "🍕",
+      color: "#f44336",
+    },
+    {
+      id: 3,
+      name: "Refrigerante",
+      description: "Coca-Cola 350ml",
+      price: 7.5,
+      modelFile: "soda.glb",
+      emoji: "🥤",
+      color: "#2196f3",
+    },
+  ];
 
-      let currentProduct = null;
-      let currentQuantity = 1;
-      let BACKEND_URL =
-        localStorage.getItem("backend_url") || "http://192.168.30.106:3000";
+  let currentProduct = null;
+  let currentQuantity = 1;
+  let BACKEND_URL = localStorage.getItem("backend_url") || "http://192.168.30.106:3000";
 
-      function showNotification(msg, isSuccess = true) {
-        const notif = document.getElementById("notification");
-        const msgElement = document.getElementById("notification-message");
-        const icon = notif.querySelector(".notification-icon");
+  function showNotification(msg, isSuccess = true) {
+    const notif = document.getElementById("notification");
+    const msgElement = document.getElementById("notification-message");
+    const icon = notif.querySelector(".notification-icon");
 
-        msgElement.textContent = msg;
-        if (isSuccess) {
-          icon.textContent = "✅";
-          notif.style.background =
-            "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)";
-        } else {
-          icon.textContent = "❌";
-          notif.style.background =
-            "linear-gradient(135deg, #F44336 0%, #d32f2f 100%)";
-        }
+    msgElement.textContent = msg;
+    if (isSuccess) {
+      icon.textContent = "✅";
+      notif.style.background = "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)";
+    } else {
+      icon.textContent = "❌";
+      notif.style.background = "linear-gradient(135deg, #F44336 0%, #d32f2f 100%)";
+    }
 
-        notif.classList.add("show");
-        setTimeout(() => {
-          notif.classList.remove("show");
-          notif.style.background =
-            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-          icon.textContent = "🎉";
-        }, 3000);
-      }
+    notif.classList.add("show");
+    setTimeout(() => {
+      notif.classList.remove("show");
+      notif.style.background = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+      icon.textContent = "🎉";
+    }, 3000);
+  }
 
-      function updateStatus(msg, isError = false) {
-        const status = document.getElementById("camera-status");
-        status.textContent = msg;
-        status.style.color = isError ? "#F44336" : "#ff9800";
-      }
+  function updateStatus(msg, isError = false) {
+    const status = document.getElementById("camera-status");
+    status.textContent = msg;
+    status.style.color = isError ? "#F44336" : "#ff9800";
+  }
 
-      function renderProducts() {
-        const container = document.getElementById("product-list");
-        container.innerHTML = "";
+  function renderProducts() {
+    const container = document.getElementById("product-list");
+    container.innerHTML = "";
 
-        products.forEach((p) => {
-          const card = document.createElement("div");
-          card.className = "product-card";
-          card.innerHTML = `
-          <div class="product-image" style="background: ${p.color}20;"><span style="font-size:64px;">${p.emoji}</span></div>
-          <div class="product-info">
-            <h3>${p.name}</h3>
-            <p>${p.description}</p>
-            <div class="product-price">R$ ${p.price.toFixed(2)}</div>
-          </div>
-          <button class="select-btn" data-id="${p.id}">🔍 Ver em 3D</button>
-        `;
-          card.querySelector(".select-btn").onclick = () => selectProduct(p.id);
-          container.appendChild(card);
-        });
-      }
+    products.forEach((p) => {
+      const card = document.createElement("div");
+      card.className = "product-card";
+      card.innerHTML = `
+        <div class="product-image" style="background: ${p.color}20;">
+          <span style="font-size:64px;">${p.emoji}</span>
+        </div>
+        <div class="product-info">
+          <h3>${p.name}</h3>
+          <p>${p.description}</p>
+          <div class="product-price">R$ ${p.price.toFixed(2)}</div>
+        </div>
+        <button class="select-btn" data-id="${p.id}">🔍 Ver em 3D</button>
+      `;
+      card.querySelector(".select-btn").onclick = () => selectProduct(p.id);
+      container.appendChild(card);
+    });
+  }
 
-      function loadModel(modelFile) {
-        const modelEntity = document.getElementById("ar-model");
-        const fallback = document.getElementById("fallback-cube");
+  // ==================== FUNÇÃO CORRIGIDA PARA CARREGAR MODELO ====================
+  function loadModel(modelFile) {
+    const modelEntity = document.getElementById("ar-model");
+    const fallback = document.getElementById("fallback-cube");
 
-        while (modelEntity.firstChild)
-          modelEntity.removeChild(modelEntity.firstChild);
-        if (fallback) fallback.setAttribute("visible", "true");
+    // Limpa modelo anterior
+    while (modelEntity.firstChild) {
+      modelEntity.removeChild(modelEntity.firstChild);
+    }
 
-        const model = document.createElement("a-entity");
-        model.setAttribute("gltf-model", `url(/assets/models/${modelFile})`);
-        model.setAttribute("scale", "0.3 0.3 0.3");
-        model.setAttribute("position", "0 0 0");
-        model.setAttribute("rotation", "0 0 0");
-        model.setAttribute("class", "tocavel");
-        model.setAttribute("gesture-handler", "enabled: true");
+    if (fallback) fallback.setAttribute("visible", "true");
 
-        model.addEventListener("model-loaded", () => {
-          if (fallback) fallback.setAttribute("visible", "false");
-          updateStatus(`✅ ${currentProduct?.name} - Aponte para o marcador`);
-        });
+    console.log(`📦 Tentando carregar modelo: assets/models/${modelFile}`);
 
-        model.addEventListener("model-error", () => {
-          updateStatus(`⚠️ Modelo não encontrado: ${modelFile}`, true);
-        });
+    const model = document.createElement("a-entity");
+    model.setAttribute("gltf-model", `url(assets/models/${modelFile})`);   // ← Caminho corrigido (sem / no início)
+    model.setAttribute("scale", "0.3 0.3 0.3");
+    model.setAttribute("position", "0 0 0");
+    model.setAttribute("rotation", "0 0 0");
+    model.setAttribute("class", "tocavel");
+    model.setAttribute("gesture-handler", "enabled: true");
 
-        modelEntity.appendChild(model);
-      }
+    model.addEventListener("model-loaded", () => {
+      if (fallback) fallback.setAttribute("visible", "false");
+      updateStatus(`✅ ${currentProduct?.name} carregado - Aponte para o marcador`);
+      console.log("✅ Modelo carregado com sucesso!");
+    });
 
-      function selectProduct(id) {
-        currentProduct = products.find((p) => p.id === id);
-        if (!currentProduct) return;
+    model.addEventListener("model-error", (err) => {
+      console.error("❌ Erro ao carregar modelo:", err);
+      updateStatus(`⚠️ Modelo não encontrado: ${modelFile}`, true);
+      if (fallback) fallback.setAttribute("visible", "true");
+    });
 
-        currentQuantity = 1;
-        document.getElementById("quantity").textContent = "1";
-        document.getElementById("ar-product-name").textContent =
-          currentProduct.name;
-        document.getElementById("ar-product-price").textContent =
-          `R$ ${currentProduct.price.toFixed(2)}`;
+    modelEntity.appendChild(model);
+  }
 
-        loadModel(currentProduct.modelFile);
+  function selectProduct(id) {
+    currentProduct = products.find((p) => p.id === id);
+    if (!currentProduct) return;
 
-        document.getElementById("menu-screen").classList.add("hide");
-        document.getElementById("back-btn").style.display = "block";
-        document.getElementById("order-panel").classList.add("show");
-        document.getElementById("ar-instructions").style.display = "block";
+    currentQuantity = 1;
+    document.getElementById("quantity").textContent = "1";
+    document.getElementById("ar-product-name").textContent = currentProduct.name;
+    document.getElementById("ar-product-price").textContent = `R$ ${currentProduct.price.toFixed(2)}`;
 
-        updateStatus("🎯 Aponte a câmera para o marcador HIRO");
-      }
+    // Carrega o modelo 3D
+    loadModel(currentProduct.modelFile);
 
-      function backToMenu() {
-        document.getElementById("menu-screen").classList.remove("hide");
-        document.getElementById("back-btn").style.display = "none";
-        document.getElementById("order-panel").classList.remove("show");
-        document.getElementById("ar-instructions").style.display = "none";
-        updateStatus("📱 Cardápio");
-      }
+    // Troca de tela
+    document.getElementById("menu-screen").classList.add("hide");
+    document.getElementById("back-btn").style.display = "block";
+    document.getElementById("order-panel").classList.add("show");
+    document.getElementById("ar-instructions").style.display = "block";
 
-      async function makeOrder() {
-        if (!currentProduct) {
-          showNotification("❌ Selecione um produto primeiro!", false);
-          return;
-        }
+    updateStatus("🎯 Aponte a câmera para o marcador HIRO");
+  }
 
-        const confirmBtn = document.getElementById("confirm-order");
-        const originalText = confirmBtn.textContent;
-        confirmBtn.textContent = "⏳ Enviando...";
-        confirmBtn.disabled = true;
+  function backToMenu() {
+    document.getElementById("menu-screen").classList.remove("hide");
+    document.getElementById("back-btn").style.display = "none";
+    document.getElementById("order-panel").classList.remove("show");
+    document.getElementById("ar-instructions").style.display = "none";
+    updateStatus("📱 Cardápio");
+  }
 
-        try {
-          // ✅ NOVA LÓGICA: Captura o número da mesa da URL
-          const urlParams = new URLSearchParams(window.location.search);
-          let tableNumber = parseInt(urlParams.get("mesa")); // parâmetro "mesa"
+  async function makeOrder() {
+    if (!currentProduct) {
+      showNotification("❌ Selecione um produto primeiro!", false);
+      return;
+    }
 
-          if (isNaN(tableNumber) || tableNumber < 1) {
-            console.warn(
-              '⚠️ Parâmetro "mesa" inválido ou ausente. Usando mesa 1 como fallback.',
-            );
-            tableNumber = 1;
-          }
+    const confirmBtn = document.getElementById("confirm-order");
+    const originalText = confirmBtn.textContent;
+    confirmBtn.textContent = "⏳ Enviando...";
+    confirmBtn.disabled = true;
 
-          // Atualiza visualmente a mesa no header
-          document.getElementById("table-number").textContent = tableNumber;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      let tableNumber = parseInt(urlParams.get("mesa"));
+      if (isNaN(tableNumber) || tableNumber < 1) tableNumber = 1;
 
-          const orderData = {
-            tableNumber: tableNumber, // ← Agora vem da URL
-            productName: currentProduct.name,
-            productPrice: currentProduct.price,
-            quantity: currentQuantity,
-            observation: "",
-            // productId: currentProduct.id,    // opcional, se o backend aceitar
-          };
+      document.getElementById("table-number").textContent = tableNumber;
 
-          const url = `${BACKEND_URL}/api/orders`;
-          console.log(
-            `📦 Enviando pedido para mesa ${tableNumber}:`,
-            orderData,
-          );
-
-          const response = await fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify(orderData),
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            console.log("✅ Pedido criado:", result);
-            showNotification(
-              `✅ Pedido de ${currentQuantity}x ${currentProduct.name} enviado para a Mesa ${tableNumber}!`,
-              true,
-            );
-
-            setTimeout(() => {
-              backToMenu();
-            }, 2000);
-          } else {
-            const errorText = await response.text();
-            console.error("❌ Erro:", response.status, errorText);
-            showNotification(
-              `❌ Erro ${response.status}: ${errorText || "Falha ao enviar"}`,
-              false,
-            );
-          }
-        } catch (error) {
-          console.error("❌ Erro de rede:", error);
-          showNotification(
-            `❌ Não conseguiu conectar em ${BACKEND_URL}`,
-            false,
-          );
-        } finally {
-          confirmBtn.textContent = originalText;
-          confirmBtn.disabled = false;
-        }
-      }
-      function saveBackendUrl() {
-        const input = document.getElementById("backend-url");
-        let url = input.value.trim();
-        // Garantir que não tenha barra no final
-        url = url.replace(/\/$/, "");
-        BACKEND_URL = url;
-        localStorage.setItem("backend_url", BACKEND_URL);
-        showNotification(`✅ Backend configurado: ${BACKEND_URL}`, true);
-        console.log("🔧 Backend URL:", BACKEND_URL);
-      }
-
-      function loadBackendUrl() {
-        const saved = localStorage.getItem("backend_url");
-        if (saved) {
-          BACKEND_URL = saved;
-          document.getElementById("backend-url").value = saved;
-        }
-        console.log("🔧 Backend URL carregada:", BACKEND_URL);
-      }
-
-      document.getElementById("back-btn").onclick = backToMenu;
-      document.getElementById("confirm-order").onclick = makeOrder;
-      document.getElementById("save-url").onclick = saveBackendUrl;
-
-      document.getElementById("decrease-qty").onclick = () => {
-        if (currentQuantity > 1) {
-          currentQuantity--;
-          document.getElementById("quantity").textContent = currentQuantity;
-        }
-      };
-      document.getElementById("increase-qty").onclick = () => {
-        if (currentQuantity < 99) {
-          currentQuantity++;
-          document.getElementById("quantity").textContent = currentQuantity;
-        }
+      const orderData = {
+        tableNumber: tableNumber,
+        productName: currentProduct.name,
+        productPrice: currentProduct.price,
+        quantity: currentQuantity,
+        observation: "",
       };
 
-      loadBackendUrl();
-      renderProducts();
-      updateStatus("📱 Toque em um produto para começar");
-
-      // Executa assim que a página carrega
-      window.addEventListener("load", () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        let tableNumber = parseInt(urlParams.get("mesa"));
-
-        if (isNaN(tableNumber) || tableNumber < 1) {
-          tableNumber = 1;
-          console.warn("⚠️ URL sem ?mesa=XX → usando mesa 1");
-        }
-
-        // Atualiza o header imediatamente
-        document.getElementById("table-number").textContent = tableNumber;
-
-        console.log(`🍽️ Mesa detectada via QR Code: ${tableNumber}`);
+      const response = await fetch(`${BACKEND_URL}/api/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
       });
-    </script>
+
+      if (response.ok) {
+        showNotification(`✅ Pedido enviado para a Mesa ${tableNumber}!`, true);
+        setTimeout(backToMenu, 1800);
+      } else {
+        const errorText = await response.text().catch(() => "");
+        showNotification(`❌ Erro ${response.status}: ${errorText || "Falha ao enviar"}`, false);
+      }
+    } catch (error) {
+      console.error("❌ Erro de rede:", error);
+      showNotification(`❌ Não conseguiu conectar no backend`, false);
+    } finally {
+      confirmBtn.textContent = originalText;
+      confirmBtn.disabled = false;
+    }
+  }
+
+  function saveBackendUrl() {
+    const input = document.getElementById("backend-url");
+    let url = input.value.trim().replace(/\/$/, "");
+    BACKEND_URL = url;
+    localStorage.setItem("backend_url", BACKEND_URL);
+    showNotification(`✅ Backend configurado: ${BACKEND_URL}`, true);
+  }
+
+  function loadBackendUrl() {
+    const saved = localStorage.getItem("backend_url");
+    if (saved) {
+      BACKEND_URL = saved;
+      document.getElementById("backend-url").value = saved;
+    }
+  }
+
+  // ==================== EVENTOS ====================
+  document.getElementById("back-btn").onclick = backToMenu;
+  document.getElementById("confirm-order").onclick = makeOrder;
+  document.getElementById("save-url").onclick = saveBackendUrl;
+
+  document.getElementById("decrease-qty").onclick = () => {
+    if (currentQuantity > 1) currentQuantity--;
+    document.getElementById("quantity").textContent = currentQuantity;
+  };
+
+  document.getElementById("increase-qty").onclick = () => {
+    if (currentQuantity < 99) currentQuantity++;
+    document.getElementById("quantity").textContent = currentQuantity;
+  };
+
+  // Inicialização
+  loadBackendUrl();
+  renderProducts();
+  updateStatus("📱 Toque em um produto para começar");
+
+  window.addEventListener("load", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    let tableNumber = parseInt(urlParams.get("mesa")) || 1;
+    document.getElementById("table-number").textContent = tableNumber;
+    console.log(`🍽️ Mesa detectada: ${tableNumber}`);
+  });
+</script>
   </body>
 </html>

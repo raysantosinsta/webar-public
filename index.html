@@ -6,19 +6,13 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Cardápio AR - Restaurante</title>
+    <title>Cardápio 3D - Fixo na Tela</title>
 
-    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 
-    <!-- AR.js -->
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
-    <!-- Gesture support -->
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
 
-    <!-- Socket.IO -->
     <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
 
     <style>
@@ -31,9 +25,37 @@
         margin: 0;
         overflow: hidden;
         font-family: Arial, Helvetica, sans-serif;
+        background-color: #000; /* Fundo preto enquanto a câmera carrega */
       }
 
-      /* Tela do Cardápio */
+      /* --- CÂMERA DE FUNDO (CSS) --- */
+      #video-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -1; /* Fica atrás de tudo */
+      }
+
+      /* --- CENA 3D (A-Frame) --- */
+      #ar-scene {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1; /* Fica na frente da câmera, atrás do menu */
+        pointer-events: none; /* Deixa cliques passarem para o menu quando ele estiver visível */
+      }
+      
+      /* Quando o painel AR abrir, reativamos os cliques na cena */
+      #order-panel.show ~ #ar-scene {
+        pointer-events: auto;
+      }
+
+      /* --- INTERFACE (MENUS) --- */
       #menu-screen {
         position: absolute;
         top: 0;
@@ -41,13 +63,16 @@
         width: 100%;
         height: 100%;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        z-index: 100;
+        z-index: 100; /* Fica na frente de tudo */
         overflow-y: auto;
-        transition: transform 0.4s ease;
+        transition: transform 0.4s ease, opacity 0.3s ease;
         transform: translateX(0);
+        opacity: 1;
       }
       #menu-screen.hide {
         transform: translateX(-100%);
+        opacity: 0;
+        pointer-events: none; /* Impede interações quando escondido */
       }
 
       .header {
@@ -81,7 +106,6 @@
         border-radius: 15px;
         overflow: hidden;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        cursor: pointer;
         transition: transform 0.3s ease;
       }
       .product-card:hover {
@@ -124,12 +148,6 @@
         cursor: pointer;
         font-weight: bold;
       }
-      .footer {
-        text-align: center;
-        padding: 20px;
-        color: white;
-        background: rgba(0, 0, 0, 0.3);
-      }
 
       /* Botão Voltar */
       #back-btn {
@@ -143,13 +161,13 @@
         border-radius: 30px;
         font-size: 16px;
         cursor: pointer;
-        z-index: 200;
+        z-index: 200; /* Acima da cena 3D */
         backdrop-filter: blur(5px);
         display: none;
         font-weight: bold;
       }
 
-      /* Painel de Pedido */
+      /* Painel de Pedido (AR) */
       #order-panel {
         position: absolute;
         bottom: 20px;
@@ -159,7 +177,7 @@
         backdrop-filter: blur(10px);
         border-radius: 15px;
         padding: 15px;
-        z-index: 200;
+        z-index: 200; /* Acima da cena 3D */
         transform: translateY(100%);
         transition: transform 0.3s ease;
       }
@@ -224,29 +242,7 @@
         font-weight: bold;
       }
 
-      /* Notificação */
-      .notification {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 12px;
-        padding: 15px;
-        z-index: 1000;
-        transform: translateX(400px);
-        transition: transform 0.3s ease;
-      }
-      .notification.show {
-        transform: translateX(0);
-      }
-      .notification-content {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        color: white;
-      }
-
-      /* Status */
+      /* Status e Instruções */
       .camera-status {
         position: absolute;
         bottom: 10px;
@@ -257,20 +253,6 @@
         border-radius: 8px;
         font-size: 11px;
         z-index: 200;
-      }
-      .ar-instructions {
-        position: absolute;
-        bottom: 100px;
-        left: 20px;
-        right: 20px;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 10px;
-        border-radius: 10px;
-        text-align: center;
-        font-size: 12px;
-        z-index: 200;
-        display: none;
       }
       .config-panel {
         position: absolute;
@@ -287,7 +269,7 @@
         padding: 8px;
         border-radius: 5px;
         border: none;
-        width: 200px;
+        width: 180px;
         font-size: 12px;
       }
       .config-panel button {
@@ -301,50 +283,52 @@
     </style>
   </head>
   <body>
+    <video id="video-background" autoplay playsinline muted></video>
+
+    <a-scene
+      id="ar-scene"
+      embedded
+      vr-mode-ui="enabled: false"
+      background="transparent: true"
+      gesture-detector
+    >
+      <a-light type="ambient" intensity="1.2"></a-light>
+      <a-light type="directional" intensity="0.8" position="1 2 1"></a-light>
+      
+      <a-entity camera position="0 0 0"></a-entity>
+
+      <a-entity
+        id="ar-model"
+        class="clickable"
+        gesture-handler="enabled: true"
+        position="0 0.5 -4" 
+        scale="1 1 1"
+        rotation="0 0 0"
+      ></a-entity>
+    </a-scene>
+
     <div class="config-panel">
-      <input
-        type="text"
-        id="backend-url"
-        placeholder="URL do Backend"
-        value="http://192.168.30.106:3000"
-      />
+      <input type="text" id="backend-url" placeholder="URL do Backend" value="http://localhost:3000" />
       <button id="save-url">Salvar</button>
     </div>
 
     <div id="menu-screen">
       <div class="header">
-        <h1>🍽️ Cardápio AR</h1>
+        <h1>🍽️ Cardápio 3D</h1>
         <div class="table-info">Mesa <span id="table-number">1</span></div>
-      </div>
+      }
       <div id="product-list" class="product-grid">
-        <div
-          class="loading"
-          style="text-align: center; padding: 40px; color: white"
-        >
-          Carregando...
-        </div>
-      </div>
-      <div class="footer">
-        <p>📱 Toque em um produto para ver em Realidade Aumentada!</p>
-        <p style="font-size: 12px">
-          🔍
-          <a
-            href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
-            target="_blank"
-            style="color: #ff9800"
-            >Baixar Marcador HIRO</a
-          >
-        </p>
+        <div style="text-align: center; padding: 40px; color: white">Carregando...</div>
       </div>
     </div>
 
-    <button id="back-btn">← Voltar ao Cardápio</button>
+    <button id="back-btn">← Voltar</button>
 
     <div id="order-panel">
       <div class="product-info-ar">
         <span id="ar-product-name" class="product-name-ar">---</span>
         <span id="ar-product-price" class="product-price-ar">R$ --,--</span>
-      </div>
+      }
       <div class="order-controls">
         <div class="quantity-control">
           <button id="decrease-qty" class="qty-btn">-</button>
@@ -355,285 +339,203 @@
       </div>
     </div>
 
-    <div class="camera-status" id="camera-status">📷 Aguardando...</div>
-    <div class="ar-instructions" id="ar-instructions">
-      🎯 Aponte a câmera para o marcador HIRO
-    </div>
+    <div class="camera-status" id="camera-status">📷 Aguardando câmera...</div>
 
-    <div id="notification" class="notification">
-      <div class="notification-content">
-        <div class="notification-icon">🎉</div>
-        <div class="notification-text">
-          <h3>Pedido Pronto!</h3>
-          <p id="notification-message"></p>
-        </div>
-      </div>
-    </div>
+    <script>
+      // ============================================
+      // 1. DADOS E CONFIGURAÇÕES GLOBAIS
+      // ============================================
+      const products = [
+        { id: 1, name: "Hambúrguer Artesanal", description: "Carne 180g, queijo, bacon", price: 32.9, modelFile: "hamburguer.glb", emoji: "🍔", color: "#ff9800", scale: "0.5 0.5 0.5", position: "0 0.5 -4" },
+        { id: 2, name: "Pizza Margherita", description: "Mussarela, manjericão", price: 45.9, modelFile: "pizza.glb", emoji: "🍕", color: "#f44336", scale: "1 1 1", position: "0 0.2 -5" },
+        { id: 3, name: "Refrigerante", description: "Coca-Cola 350ml", price: 7.5, modelFile: "soda.glb", emoji: "🥤", color: "#2196f3", scale: "0.8 0.8 0.8", position: "0 0.8 -3.5" },
+      ];
 
-<a-scene
-  id="ar-scene"
-  embedded
-  vr-mode-ui="enabled: false"
-  arjs="sourceType: webcam; debugUIEnabled: false;"
-  gesture-detector
->
-  <a-marker preset="hiro" raycaster="objects: .clickable" emitevents="true" cursor="fuse: false; rayOrigin: mouse;">
-    <a-entity
-      id="ar-model"
-      gesture-handler
-      position="0 0 0"
-      scale="0.22 0.22 0.22"
-    ></a-entity>
-  </a-marker>
+      let currentProduct = null;
+      let currentQuantity = 1;
+      let BACKEND_URL = localStorage.getItem("backend_url") || "http://localhost:3000";
 
-  <a-entity camera></a-entity>
-</a-scene>
+      // ============================================
+      // 2. CONTROLADOR DA CÂMERA (CSS/HTML5)
+      // ============================================
+      async function setupCamera() {
+        const video = document.getElementById('video-background');
+        const status = document.getElementById("camera-status");
+        
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "environment" }, // Usa a câmera traseira
+            audio: false 
+          });
+          video.srcObject = stream;
+          status.textContent = "📷 Câmera Ativa • Arraste para girar o modelo";
+          status.style.color = "#4CAF50";
+        } catch (error) {
+          console.error("Erro ao acessar a câmera:", error);
+          status.textContent = "⚠️ Erro ao acessar câmera. Verifique permissões.";
+          status.style.color = "#F44336";
+        }
+      }
 
-   <script>
-  const products = [
-    {
-      id: 1,
-      name: "Hambúrguer Artesanal",
-      description: "Pão brioche, carne 180g, queijo, bacon",
-      price: 32.9,
-      modelFile: "hamburguer.glb",
-      emoji: "🍔",
-      color: "#ff9800",
-    },
-    {
-      id: 2,
-      name: "Pizza Margherita",
-      description: "Molho, mussarela, manjericão",
-      price: 45.9,
-      modelFile: "pizza.glb",
-      emoji: "🍕",
-      color: "#f44336",
-    },
-    {
-      id: 3,
-      name: "Refrigerante",
-      description: "Coca-Cola 350ml",
-      price: 7.5,
-      modelFile: "soda.glb",
-      emoji: "🥤",
-      color: "#2196f3",
-    },
-  ];
+      // ============================================
+      // 3. CONTROLADOR 3D (ARController Unificado)
+      // ============================================
+      const ARController = {
+        currentModelEntity: null,
 
-  let currentProduct = null;
-  let currentQuantity = 1;
-  let BACKEND_URL = localStorage.getItem("backend_url") || "http://192.168.30.106:3000";
+        loadModel: (product) => {
+          const modelParent = document.getElementById("ar-model");
+          if (!modelParent) return;
 
-  function showNotification(msg, isSuccess = true) {
-    const notif = document.getElementById("notification");
-    const msgElement = document.getElementById("notification-message");
-    const icon = notif.querySelector(".notification-icon");
+          // Limpa modelo anterior
+          while (modelParent.firstChild) {
+            modelParent.removeChild(modelParent.firstChild);
+          }
 
-    msgElement.textContent = msg;
-    if (isSuccess) {
-      icon.textContent = "✅";
-      notif.style.background = "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)";
-    } else {
-      icon.textContent = "❌";
-      notif.style.background = "linear-gradient(135deg, #F44336 0%, #d32f2f 100%)";
-    }
+          if (!product.modelFile) {
+            console.warn("Produto sem arquivo de modelo 3D");
+            return;
+          }
 
-    notif.classList.add("show");
-    setTimeout(() => {
-      notif.classList.remove("show");
-      notif.style.background = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-      icon.textContent = "🎉";
-    }, 3000);
-  }
+          const modelPath = `assets/models/${product.modelFile}`;
+          console.log(`📦 Carregando modelo: ${modelPath}`);
 
-  function updateStatus(msg, isError = false) {
-    const status = document.getElementById("camera-status");
-    status.textContent = msg;
-    status.style.color = isError ? "#F44336" : "#ff9800";
-  }
+          // Cria a nova entidade gltf
+          const model = document.createElement("a-entity");
+          model.setAttribute("gltf-model", `url(${modelPath})`);
+          
+          // Aplica escala e posição específicas do produto (definidas no array de dados)
+          model.setAttribute("scale", product.scale || "1 1 1");
+          model.setAttribute("position", product.position || "0 0.5 -4");
+          model.setAttribute("class", "clickable"); // Para gestos
 
-  function renderProducts() {
-    const container = document.getElementById("product-list");
-    container.innerHTML = "";
+          // Rotação automática horizontal suave
+          model.setAttribute("animation", {
+            property: "rotation",
+            to: "0 360 0",
+            dur: 20000, // 20 segundos por volta
+            easing: "linear",
+            loop: true
+          });
 
-    products.forEach((p) => {
-      const card = document.createElement("div");
-      card.className = "product-card";
-      card.innerHTML = `
-        <div class="product-image" style="background: ${p.color}20;">
-          <span style="font-size:64px;">${p.emoji}</span>
-        </div>
-        <div class="product-info">
-          <h3>${p.name}</h3>
-          <p>${p.description}</p>
-          <div class="product-price">R$ ${p.price.toFixed(2)}</div>
-        </div>
-        <button class="select-btn" data-id="${p.id}">🔍 Ver em 3D</button>
-      `;
-      card.querySelector(".select-btn").onclick = () => selectProduct(p.id);
-      container.appendChild(card);
-    });
-  }
+          // Eventos de carregamento
+          model.addEventListener("model-loaded", () => {
+            console.log(`✅ Modelo carregado: ${product.name}`);
+          });
 
-  // ==================== FUNÇÃO CORRIGIDA PARA CARREGAR MODELO ====================
+          model.addEventListener("model-error", (err) => {
+            console.error("❌ Erro ao carregar modelo:", err);
+            updateStatus(`⚠️ Falha ao carregar ${product.modelFile}`, true);
+          });
 
-function loadModel(modelFile) {
-  const modelEntity = document.getElementById("ar-model");
+          modelParent.appendChild(model);
+          ARController.currentModelEntity = model;
+        },
 
-  // Limpa tudo antes
-  while (modelEntity.firstChild) {
-    modelEntity.removeChild(modelEntity.firstChild);
-  }
-
-  const modelPath = `assets/models/${modelFile}`;
-  console.log(`🔍 Carregando: ${modelPath}`);
-
-  const model = document.createElement("a-entity");
-  model.setAttribute("gltf-model", `url(${modelPath})`);
-  model.setAttribute("scale", "0.22 0.22 0.22");
-  model.setAttribute("position", "0 0.2 -1.0");
-
-  // Rotação automática horizontal infinita (suave)
-  model.setAttribute("animation", {
-    property: "rotation",
-    to: "0 360 0",
-    dur: 18000,           // 18 segundos por volta (bom equilíbrio)
-    easing: "linear",
-    loop: true
-  });
-
-  // Eventos
-  model.addEventListener("model-loaded", () => {
-    console.log("✅ Modelo carregado com sucesso!");
-    updateStatus(`✅ ${currentProduct?.name} • Arraste para girar`);
-  });
-
-  model.addEventListener("model-error", (err) => {
-    console.error("❌ Erro no modelo:", err);
-    updateStatus(`⚠️ Erro ao carregar ${modelFile}`, true);
-  });
-
-  modelEntity.appendChild(model);
-}
-function selectProduct(id) {
-  const product = products.find(p => p.id === id);
-  if (!product) return;
-
-  currentProduct = product;
-  currentQuantity = 1;
-  
-  // 1. Atualiza UI
-  document.getElementById("quantity").textContent = "1";
-  document.getElementById("ar-product-name").textContent = product.name;
-  document.getElementById("ar-product-price").textContent = `R$ ${product.price.toFixed(2)}`;
-
-  // 2. Carrega o Modelo (Chamando a função que você já tem)
-  loadModel(product.modelFile); 
-
-  // 3. Troca de tela
-  document.getElementById("menu-screen").classList.add("hide");
-  document.getElementById("back-btn").style.display = "block";
-  document.getElementById("order-panel").classList.add("show");
-  document.getElementById("ar-instructions").style.display = "block";
-}
-function backToMenu() {
-    document.getElementById("menu-screen").classList.remove("hide");
-    document.getElementById("back-btn").style.display = "none";
-    document.getElementById("order-panel").classList.remove("show");
-    document.getElementById("ar-instructions").style.display = "none";
-    updateStatus("📱 Cardápio");
-  }
-
-  async function makeOrder() {
-    if (!currentProduct) {
-      showNotification("❌ Selecione um produto primeiro!", false);
-      return;
-    }
-
-    const confirmBtn = document.getElementById("confirm-order");
-    const originalText = confirmBtn.textContent;
-    confirmBtn.textContent = "⏳ Enviando...";
-    confirmBtn.disabled = true;
-
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      let tableNumber = parseInt(urlParams.get("mesa"));
-      if (isNaN(tableNumber) || tableNumber < 1) tableNumber = 1;
-
-      document.getElementById("table-number").textContent = tableNumber;
-
-      const orderData = {
-        tableNumber: tableNumber,
-        productName: currentProduct.name,
-        productPrice: currentProduct.price,
-        quantity: currentQuantity,
-        observation: "",
+        reset: () => {
+          const modelParent = document.getElementById("ar-model");
+          if (modelParent) {
+            while (modelParent.firstChild) {
+              modelParent.removeChild(modelParent.firstChild);
+            }
+          }
+          ARController.currentModelEntity = null;
+          console.log("🔄 Cena 3D resetada");
+        }
       };
 
-      const response = await fetch(`${BACKEND_URL}/api/orders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData),
-      });
-
-      if (response.ok) {
-        showNotification(`✅ Pedido enviado para a Mesa ${tableNumber}!`, true);
-        setTimeout(backToMenu, 1800);
-      } else {
-        const errorText = await response.text().catch(() => "");
-        showNotification(`❌ Erro ${response.status}: ${errorText || "Falha ao enviar"}`, false);
+      // ============================================
+      // 4. FUNÇÕES DE INTERFACE (UI)
+      // ============================================
+      function updateStatus(msg, isError = false) {
+        const status = document.getElementById("camera-status");
+        status.textContent = msg;
+        status.style.color = isError ? "#F44336" : "#ff9800";
       }
-    } catch (error) {
-      console.error("❌ Erro de rede:", error);
-      showNotification(`❌ Não conseguiu conectar no backend`, false);
-    } finally {
-      confirmBtn.textContent = originalText;
-      confirmBtn.disabled = false;
-    }
-  }
 
-  function saveBackendUrl() {
-    const input = document.getElementById("backend-url");
-    let url = input.value.trim().replace(/\/$/, "");
-    BACKEND_URL = url;
-    localStorage.setItem("backend_url", BACKEND_URL);
-    showNotification(`✅ Backend configurado: ${BACKEND_URL}`, true);
-  }
+      function renderProducts() {
+        const container = document.getElementById("product-list");
+        container.innerHTML = "";
 
-  function loadBackendUrl() {
-    const saved = localStorage.getItem("backend_url");
-    if (saved) {
-      BACKEND_URL = saved;
-      document.getElementById("backend-url").value = saved;
-    }
-  }
+        products.forEach((p) => {
+          const card = document.createElement("div");
+          card.className = "product-card";
+          card.innerHTML = `
+            <div class="product-image" style="background: ${p.color}20;">
+              <span style="font-size:64px;">${p.emoji}</span>
+            </div>
+            <div class="product-info">
+              <h3>${p.name}</h3>
+              <p>${p.description}</p>
+              <div class="product-price">R$ ${p.price.toFixed(2)}</div>
+            </div>
+            <button class="select-btn" data-id="${p.id}">🔍 Ver em 3D</button>
+          `;
+          card.querySelector(".select-btn").onclick = () => selectProduct(p.id);
+          container.appendChild(card);
+        });
+      }
 
-  // ==================== EVENTOS ====================
-  document.getElementById("back-btn").onclick = backToMenu;
-  document.getElementById("confirm-order").onclick = makeOrder;
-  document.getElementById("save-url").onclick = saveBackendUrl;
+      function selectProduct(id) {
+        const product = products.find(p => p.id === id);
+        if (!product) return;
 
-  document.getElementById("decrease-qty").onclick = () => {
-    if (currentQuantity > 1) currentQuantity--;
-    document.getElementById("quantity").textContent = currentQuantity;
-  };
+        currentProduct = product;
+        currentQuantity = 1;
 
-  document.getElementById("increase-qty").onclick = () => {
-    if (currentQuantity < 99) currentQuantity++;
-    document.getElementById("quantity").textContent = currentQuantity;
-  };
+        // 1. Atualiza UI
+        document.getElementById("quantity").textContent = "1";
+        document.getElementById("ar-product-name").textContent = product.name;
+        document.getElementById("ar-product-price").textContent = `R$ ${product.price.toFixed(2)}`;
 
-  // Inicialização
-  loadBackendUrl();
-  renderProducts();
-  updateStatus("📱 Toque em um produto para começar");
+        // 2. Carrega o Modelo 3D via Controlador unificado
+        ARController.loadModel(product);
 
-  window.addEventListener("load", () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    let tableNumber = parseInt(urlParams.get("mesa")) || 1;
-    document.getElementById("table-number").textContent = tableNumber;
-    console.log(`🍽️ Mesa detectada: ${tableNumber}`);
-  });
-</script>
+        // 3. Troca de telas (CSS)
+        document.getElementById("menu-screen").classList.add("hide");
+        document.getElementById("back-btn").style.display = "block";
+        document.getElementById("order-panel").classList.add("show");
+      }
+
+      function backToMenu() {
+        // 1. Esconde painel 3D
+        document.getElementById("menu-screen").classList.remove("hide");
+        document.getElementById("back-btn").style.display = "none";
+        document.getElementById("order-panel").classList.remove("show");
+
+        // 2. Limpa o modelo para economizar memória
+        ARController.reset();
+      }
+
+      // ============================================
+      // 5. EVENTOS E INICIALIZAÇÃO
+      // ============================================
+      
+      // Botões de Quantidade
+      document.getElementById("decrease-qty").onclick = () => { if (currentQuantity > 1) currentQuantity--; document.getElementById("quantity").textContent = currentQuantity; };
+      document.getElementById("increase-qty").onclick = () => { if (currentQuantity < 99) currentQuantity++; document.getElementById("quantity").textContent = currentQuantity; };
+      
+      // Navegação
+      document.getElementById("back-btn").onclick = backToMenu;
+      
+      // Configuração Backend
+      document.getElementById("save-url").onclick = () => {
+        let url = document.getElementById("backend-url").value.trim().replace(/\/$/, "");
+        BACKEND_URL = url;
+        localStorage.setItem("backend_url", BACKEND_URL);
+        alert(`Backend configurado: ${BACKEND_URL}`);
+      };
+
+      // INICIALIZAÇÃO AO CARREGAR PÁGINA
+      window.addEventListener("load", () => {
+        // Pega número da mesa da URL (?mesa=2)
+        const urlParams = new URLSearchParams(window.location.search);
+        let tableNumber = parseInt(urlParams.get("mesa")) || 1;
+        document.getElementById("table-number").textContent = tableNumber;
+
+        renderProducts(); // Cria a lista de produtos
+        setupCamera();    // Ativa a câmera de fundo
+      });
+    </script>
   </body>
 </html>

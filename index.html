@@ -495,41 +495,41 @@
 
   // ==================== FUNÇÃO CORRIGIDA PARA CARREGAR MODELO ====================
   function loadModel(modelFile) {
-    const modelEntity = document.getElementById("ar-model");
-    const fallback = document.getElementById("fallback-cube");
+  const modelEntity = document.getElementById("ar-model");
+  const fallback = document.getElementById("fallback-cube");
 
-    // Limpa modelo anterior
-    while (modelEntity.firstChild) {
-      modelEntity.removeChild(modelEntity.firstChild);
-    }
-
-    if (fallback) fallback.setAttribute("visible", "true");
-
-    console.log(`📦 Tentando carregar modelo: assets/models/${modelFile}`);
-
-    const model = document.createElement("a-entity");
-    model.setAttribute("gltf-model", `url(assets/models/${modelFile})`);   // ← Caminho corrigido (sem / no início)
-    model.setAttribute("scale", "0.3 0.3 0.3");
-    model.setAttribute("position", "0 0 0");
-    model.setAttribute("rotation", "0 0 0");
-    model.setAttribute("class", "tocavel");
-    model.setAttribute("gesture-handler", "enabled: true");
-
-    model.addEventListener("model-loaded", () => {
-      if (fallback) fallback.setAttribute("visible", "false");
-      updateStatus(`✅ ${currentProduct?.name} carregado - Aponte para o marcador`);
-      console.log("✅ Modelo carregado com sucesso!");
-    });
-
-    model.addEventListener("model-error", (err) => {
-      console.error("❌ Erro ao carregar modelo:", err);
-      updateStatus(`⚠️ Modelo não encontrado: ${modelFile}`, true);
-      if (fallback) fallback.setAttribute("visible", "true");
-    });
-
-    modelEntity.appendChild(model);
+  // Limpa tudo antes
+  while (modelEntity.firstChild) {
+    modelEntity.removeChild(modelEntity.firstChild);
   }
 
+  if (fallback) fallback.setAttribute("visible", "true");
+
+  const modelPath = `assets/models/${modelFile}`;
+  console.log(`🔍 Tentando carregar modelo: ${modelPath}`);
+
+  const model = document.createElement("a-entity");
+  model.setAttribute("gltf-model", `url(${modelPath})`);
+  model.setAttribute("scale", "0.35 0.35 0.35");        // aumentei um pouco
+  model.setAttribute("position", "0 0.2 0");            // levantei um pouco
+  model.setAttribute("rotation", "0 0 0");
+  model.setAttribute("class", "tocavel");
+  model.setAttribute("gesture-handler", "enabled: true");
+
+  model.addEventListener("model-loaded", () => {
+    console.log("✅ Modelo carregado com SUCESSO!");
+    if (fallback) fallback.setAttribute("visible", "false");
+    updateStatus(`✅ ${currentProduct?.name} carregado!`);
+  });
+
+  model.addEventListener("model-error", (e) => {
+    console.error("❌ ERRO ao carregar o modelo:", e);
+    updateStatus(`⚠️ Falha ao carregar ${modelFile} - Verifique o arquivo`, true);
+    if (fallback) fallback.setAttribute("visible", "true");
+  });
+
+  modelEntity.appendChild(model);
+}
   function selectProduct(id) {
     currentProduct = products.find((p) => p.id === id);
     if (!currentProduct) return;

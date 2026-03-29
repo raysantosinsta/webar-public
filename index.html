@@ -564,18 +564,34 @@
         confirmBtn.disabled = true;
 
         try {
-          // NÃO enviar productId - apenas productName e price
+          // ✅ NOVA LÓGICA: Captura o número da mesa da URL
+          const urlParams = new URLSearchParams(window.location.search);
+          let tableNumber = parseInt(urlParams.get("mesa")); // parâmetro "mesa"
+
+          if (isNaN(tableNumber) || tableNumber < 1) {
+            console.warn(
+              '⚠️ Parâmetro "mesa" inválido ou ausente. Usando mesa 1 como fallback.',
+            );
+            tableNumber = 1;
+          }
+
+          // Atualiza visualmente a mesa no header
+          document.getElementById("table-number").textContent = tableNumber;
+
           const orderData = {
-            tableNumber: 1,
+            tableNumber: tableNumber, // ← Agora vem da URL
             productName: currentProduct.name,
             productPrice: currentProduct.price,
             quantity: currentQuantity,
             observation: "",
+            // productId: currentProduct.id,    // opcional, se o backend aceitar
           };
 
           const url = `${BACKEND_URL}/api/orders`;
-          console.log("📦 Enviando para:", url);
-          console.log("📦 Dados:", orderData);
+          console.log(
+            `📦 Enviando pedido para mesa ${tableNumber}:`,
+            orderData,
+          );
 
           const response = await fetch(url, {
             method: "POST",
@@ -586,13 +602,11 @@
             body: JSON.stringify(orderData),
           });
 
-          console.log("📡 Status:", response.status);
-
           if (response.ok) {
             const result = await response.json();
             console.log("✅ Pedido criado:", result);
             showNotification(
-              `✅ Pedido de ${currentQuantity}x ${currentProduct.name} enviado!`,
+              `✅ Pedido de ${currentQuantity}x ${currentProduct.name} enviado para a Mesa ${tableNumber}!`,
               true,
             );
 
@@ -601,7 +615,7 @@
             }, 2000);
           } else {
             const errorText = await response.text();
-            console.error("❌ Erro resposta:", response.status, errorText);
+            console.error("❌ Erro:", response.status, errorText);
             showNotification(
               `❌ Erro ${response.status}: ${errorText || "Falha ao enviar"}`,
               false,
@@ -610,7 +624,7 @@
         } catch (error) {
           console.error("❌ Erro de rede:", error);
           showNotification(
-            `❌ Erro: Não conseguiu conectar em ${BACKEND_URL}`,
+            `❌ Não conseguiu conectar em ${BACKEND_URL}`,
             false,
           );
         } finally {
@@ -618,7 +632,6 @@
           confirmBtn.disabled = false;
         }
       }
-
       function saveBackendUrl() {
         const input = document.getElementById("backend-url");
         let url = input.value.trim();
@@ -659,6 +672,22 @@
       loadBackendUrl();
       renderProducts();
       updateStatus("📱 Toque em um produto para começar");
+
+      // Executa assim que a página carrega
+      window.addEventListener("load", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        let tableNumber = parseInt(urlParams.get("mesa"));
+
+        if (isNaN(tableNumber) || tableNumber < 1) {
+          tableNumber = 1;
+          console.warn("⚠️ URL sem ?mesa=XX → usando mesa 1");
+        }
+
+        // Atualiza o header imediatamente
+        document.getElementById("table-number").textContent = tableNumber;
+
+        console.log(`🍽️ Mesa detectada via QR Code: ${tableNumber}`);
+      });
     </script>
   </body>
 </html>

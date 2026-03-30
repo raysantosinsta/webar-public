@@ -221,7 +221,7 @@
         border-radius: 50px;
         font-weight: bold;
         z-index: 150;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         cursor: pointer;
         display: none; /* Só aparece quando tem itens */
       }
@@ -306,7 +306,13 @@
     >
       <a-light type="ambient" intensity="1.2"></a-light>
       <a-light type="directional" intensity="0.8" position="1 2 1"></a-light>
-      <a-entity camera position="0 0 0"></a-entity>
+      <a-entity camera position="0 0 0">
+        <a-entity
+          cursor="rayOrigin: mouse"
+          raycaster="objects: .clickable"
+        ></a-entity>
+      </a-entity>
+
       <a-entity
         id="ar-model"
         class="clickable"
@@ -342,11 +348,18 @@
         <h2>Seu Pedido</h2>
         <button class="close-cart" onclick="closeCart()">✕</button>
       </div>
-      <div id="cart-items-container" class="cart-items">
-        </div>
+      <div id="cart-items-container" class="cart-items"></div>
       <div class="cart-footer">
-        <div class="total-price">Total: <span id="cart-total-value">R$ 0,00</span></div>
-        <button id="final-send-btn" class="send-order-btn" onclick="sendFullOrder()">🚀 Enviar Pedido para Cozinha</button>
+        <div class="total-price">
+          Total: <span id="cart-total-value">R$ 0,00</span>
+        </div>
+        <button
+          id="final-send-btn"
+          class="send-order-btn"
+          onclick="sendFullOrder()"
+        >
+          🚀 Enviar Pedido para Cozinha
+        </button>
       </div>
     </div>
 
@@ -367,7 +380,9 @@
           <span id="quantity" style="font-weight: bold">1</span>
           <button class="qty-btn" onclick="updateQty(1)">+</button>
         </div>
-        <button id="confirm-order" class="confirm-btn">🛒 Adicionar ao Pedido</button>
+        <button id="confirm-order" class="confirm-btn">
+          🛒 Adicionar ao Pedido
+        </button>
       </div>
     </div>
 
@@ -376,26 +391,58 @@
     <script>
       // 1. Dados e Estado
       const products = [
-        { id: 1, name: "Hambúrguer Artesanal", description: "Carne 180g, queijo, bacon", price: 32.9, modelFile: "hamburguer.glb", emoji: "🍔", color: "#ff9800", scale: "0.2 0.2 0.2" },
-        { id: 2, name: "Pizza Margherita", description: "Mussarela, manjericão", price: 45.9, modelFile: "pizza.glb", emoji: "🍕", color: "#f44336", scale: "0.15 0.15 0.15" },
-        { id: 3, name: "Refrigerante", description: "Coca-Cola 350ml", price: 7.5, modelFile: "soda.glb", emoji: "🥤", color: "#2196f3", scale: "0.2 0.2 0.2" },
+        {
+          id: 1,
+          name: "Hambúrguer Artesanal",
+          description: "Carne 180g, queijo, bacon",
+          price: 32.9,
+          modelFile: "hamburguer.glb",
+          emoji: "🍔",
+          color: "#ff9800",
+          scale: "0.2 0.2 0.2",
+        },
+        {
+          id: 2,
+          name: "Pizza Margherita",
+          description: "Mussarela, manjericão",
+          price: 45.9,
+          modelFile: "pizza.glb",
+          emoji: "🍕",
+          color: "#f44336",
+          scale: "0.15 0.15 0.15",
+        },
+        {
+          id: 3,
+          name: "Refrigerante",
+          description: "Coca-Cola 350ml",
+          price: 7.5,
+          modelFile: "soda.glb",
+          emoji: "🥤",
+          color: "#2196f3",
+          scale: "0.2 0.2 0.2",
+        },
       ];
 
       let cart = [];
       let currentProduct = null;
       let currentQuantity = 1;
-      let BACKEND_URL = localStorage.getItem("backend_url") || "http://192.168.30.106:3000/api";
+      let BACKEND_URL =
+        localStorage.getItem("backend_url") || "http://192.168.30.106:3000/api";
       document.getElementById("backend-url").value = BACKEND_URL;
 
       // 2. Funções de Câmera
       async function setupCamera() {
         const video = document.getElementById("video-background");
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+          });
           video.srcObject = stream;
-          document.getElementById("camera-status").textContent = "📷 Câmera Ativa";
+          document.getElementById("camera-status").textContent =
+            "📷 Câmera Ativa";
         } catch (e) {
-          document.getElementById("camera-status").textContent = "⚠️ Erro na câmera";
+          document.getElementById("camera-status").textContent =
+            "⚠️ Erro na câmera";
         }
       }
 
@@ -426,14 +473,46 @@
         currentQuantity = 1;
         document.getElementById("quantity").textContent = "1";
         document.getElementById("ar-product-name").textContent = product.name;
-        document.getElementById("ar-product-price").textContent = `R$ ${product.price.toFixed(2)}`;
-        
+        document.getElementById("ar-product-price").textContent =
+          `R$ ${product.price.toFixed(2)}`;
+
         const modelParent = document.getElementById("ar-model");
         modelParent.innerHTML = "";
         const model = document.createElement("a-entity");
-        model.setAttribute("gltf-model", `url(assets/models/${product.modelFile})`);
+
+        // Define o modelo e escala
+        model.setAttribute(
+          "gltf-model",
+          `url(assets/models/${product.modelFile})`,
+        );
         model.setAttribute("scale", product.scale);
-        model.setAttribute("animation", "property: rotation; to: 0 360 0; dur: 20000; easing: linear; loop: true");
+        model.setAttribute("class", "clickable"); // Garante que seja clicável
+
+        // Configura a animação inicial
+        model.setAttribute("animation", {
+          property: "rotation",
+          to: "0 360 0",
+          dur: 20000,
+          easing: "linear",
+          loop: true,
+          enabled: true, // Começa ativa
+        });
+
+        // LÓGICA DE CLIQUE PARA PARAR/VOLTAR ANIMACAO
+        let isRotating = true;
+        model.addEventListener("click", function () {
+          if (isRotating) {
+            // Para a animação
+            model.setAttribute("animation", "enabled", false);
+            console.log("Animação pausada");
+          } else {
+            // Retoma a animação
+            model.setAttribute("animation", "enabled", true);
+            console.log("Animação retomada");
+          }
+          isRotating = !isRotating;
+        });
+
         modelParent.appendChild(model);
 
         document.getElementById("menu-screen").classList.add("hide");
@@ -445,7 +524,7 @@
       function addToCart() {
         if (!currentProduct) return;
 
-        const existingItem = cart.find(item => item.id === currentProduct.id);
+        const existingItem = cart.find((item) => item.id === currentProduct.id);
         if (existingItem) {
           existingItem.quantity += currentQuantity;
         } else {
@@ -453,12 +532,14 @@
             id: currentProduct.id,
             name: currentProduct.name,
             price: currentProduct.price,
-            quantity: currentQuantity
+            quantity: currentQuantity,
           });
         }
 
         updateCartButton();
-        alert(`✅ ${currentQuantity}x ${currentProduct.name} adicionado ao pedido!`);
+        alert(
+          `✅ ${currentQuantity}x ${currentProduct.name} adicionado ao pedido!`,
+        );
         backToMenu();
       }
 
@@ -501,12 +582,14 @@
           container.appendChild(div);
         });
 
-        document.getElementById("cart-total-value").textContent = `R$ ${total.toFixed(2)}`;
+        document.getElementById("cart-total-value").textContent =
+          `R$ ${total.toFixed(2)}`;
         if (cart.length === 0) {
-            container.innerHTML = "<p style='text-align:center; color:#999'>Seu carrinho está vazio.</p>";
-            document.getElementById("final-send-btn").disabled = true;
+          container.innerHTML =
+            "<p style='text-align:center; color:#999'>Seu carrinho está vazio.</p>";
+          document.getElementById("final-send-btn").disabled = true;
         } else {
-            document.getElementById("final-send-btn").disabled = false;
+          document.getElementById("final-send-btn").disabled = false;
         }
       }
 
@@ -529,12 +612,14 @@
         const tableNum = parseInt(urlParams.get("mesa")) || 1;
 
         // Limpa URL
-        const cleanUrl = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
-        
+        const cleanUrl = BACKEND_URL.endsWith("/")
+          ? BACKEND_URL.slice(0, -1)
+          : BACKEND_URL;
+
         // Vamos enviar os itens um por um (ou pode adaptar para um bulk se seu backend suportar)
         // Aqui usaremos o seu endpoint atual /orders chamando para cada item
         try {
-          const promises = cart.map(item => {
+          const promises = cart.map((item) => {
             const orderData = {
               tableNumber: tableNum,
               productId: String(item.id),
@@ -542,7 +627,7 @@
               productPrice: item.price,
               quantity: item.quantity,
               status: "pending",
-              observation: ""
+              observation: "",
             };
             return fetch(`${cleanUrl}/orders`, {
               method: "POST",
@@ -552,7 +637,7 @@
           });
 
           const results = await Promise.all(promises);
-          const allOk = results.every(res => res.ok);
+          const allOk = results.every((res) => res.ok);
 
           if (allOk) {
             alert("🚀 SUCESSO! Todos os itens foram enviados para a cozinha.");
@@ -561,7 +646,9 @@
             closeCart();
             backToMenu();
           } else {
-            alert("⚠️ Alguns itens podem não ter sido enviados. Verifique com o garçom.");
+            alert(
+              "⚠️ Alguns itens podem não ter sido enviados. Verifique com o garçom.",
+            );
           }
         } catch (e) {
           alert("❌ Erro de conexão com o servidor!");
@@ -593,7 +680,8 @@
       // Inicialização
       window.onload = () => {
         const urlParams = new URLSearchParams(window.location.search);
-        document.getElementById("table-number").textContent = urlParams.get("mesa") || "1";
+        document.getElementById("table-number").textContent =
+          urlParams.get("mesa") || "1";
         document.getElementById("confirm-order").onclick = addToCart;
         renderProducts();
         setupCamera();

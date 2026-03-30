@@ -579,8 +579,8 @@
 
       .camera-status {
         position: fixed;
-        bottom: 90px; /* Alterado de 16px para 90px */
-        right: 16px;
+        bottom: 20px;
+        left: 20px; /* Alterado de right para left */
         background: rgba(0, 0, 0, 0.6);
         backdrop-filter: blur(8px);
         padding: 8px 16px;
@@ -777,53 +777,13 @@
 
       /* Ajuste para dispositivos móveis */
       @media (max-width: 768px) {
-        .product-grid {
-          grid-template-columns: 1fr;
-          gap: 16px;
-          padding: 16px;
-        }
-
-        .header h1 {
-          font-size: 24px;
-        }
-
-        .gesture-instruction {
-          bottom: 80px;
-          font-size: 10px;
-        }
-
-        .instruction {
-          font-size: 11px;
-        }
-
-        #info-panel {
-          max-height: 35vh;
-          padding: 16px;
-        }
-
-        .order-notification {
-          top: 70px;
-          left: 16px;
-          right: 16px;
-        }
-
-        .notification-content {
-          padding: 16px;
-        }
-
-        .notification-icon {
-          font-size: 36px;
-        }
-
-        /* CORREÇÃO: Ajusta a posição do status da câmera em mobile */
         .camera-status {
-          bottom: 80px;
-          right: 12px;
+          bottom: 16px;
+          left: 16px; /* Esquerda em mobile também */
           font-size: 10px;
           padding: 6px 12px;
         }
 
-        /* CORREÇÃO: Garante que o botão do carrinho fique abaixo */
         #cart-btn {
           bottom: 16px;
           right: 16px;

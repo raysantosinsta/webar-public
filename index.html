@@ -6,18 +6,11 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Cardápio 3D - Restaurante com Gestos</title>
+    <title>Cardápio 3D - Restaurante</title>
 
-    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-
-    <!-- AR.js -->
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
-    <!-- Gesture support para AR.js (pinch zoom + rotate) -->
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
-    
     <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
 
     <style>
@@ -29,21 +22,29 @@
       body {
         margin: 0;
         overflow: hidden;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: sans-serif;
+        background-color: #000;
       }
-      
-      /* A cena AR ocupa toda a tela */
-      .ar-scene {
+      #video-background {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
+        object-fit: cover;
+        z-index: -1;
       }
-      
-      /* Elementos de UI */
-      #menu-screen {
+      #ar-scene {
         position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        pointer-events: auto; /* Importante para gestos funcionarem */
+      }
+      #menu-screen {
+        position: absolute;
         top: 0;
         left: 0;
         width: 100%;
@@ -54,20 +55,17 @@
         transition: 0.4s ease;
         transform: translateX(0);
       }
-      
       #menu-screen.hide {
         transform: translateX(-100%);
         opacity: 0;
         pointer-events: none;
       }
-      
       .header {
         background: rgba(0, 0, 0, 0.3);
         padding: 20px;
         text-align: center;
         color: white;
       }
-      
       .table-info {
         font-size: 18px;
         background: rgba(255, 255, 255, 0.2);
@@ -76,73 +74,63 @@
         border-radius: 25px;
         margin-top: 10px;
       }
-      
       .product-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 20px;
         padding: 20px;
       }
-      
       .product-card {
         background: white;
         border-radius: 15px;
         overflow: hidden;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         transition: transform 0.3s;
-        cursor: pointer;
       }
-      
       .product-card:hover {
         transform: translateY(-5px);
       }
-      
       .product-image {
         width: 100%;
         height: 180px;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 60px;
         background: #f9f9f9;
         overflow: hidden;
       }
-      
       .product-image img {
         width: 100%;
         height: 100%;
         object-fit: cover;
       }
-      
       .product-info {
         padding: 15px;
       }
-      
       .product-price {
         font-size: 20px;
         font-weight: bold;
         color: #4caf50;
         margin: 10px 0;
       }
-      
       .select-btn {
         width: 100%;
-        padding: 12px;
+        padding: 15px;
         background: #4caf50;
         color: white;
         border: none;
-        border-radius: 8px;
         font-weight: bold;
         cursor: pointer;
         font-size: 16px;
+        border-radius: 8px;
         transition: background 0.3s;
       }
-      
       .select-btn:hover {
         background: #45a049;
       }
-      
       #back-btn {
-        position: fixed;
+        position: absolute;
         top: 20px;
         left: 20px;
         background: rgba(0, 0, 0, 0.7);
@@ -154,11 +142,9 @@
         display: none;
         cursor: pointer;
         backdrop-filter: blur(5px);
-        font-size: 16px;
       }
-      
       #order-panel {
-        position: fixed;
+        position: absolute;
         bottom: 20px;
         left: 20px;
         right: 20px;
@@ -170,24 +156,20 @@
         transform: translateY(150%);
         transition: 0.3s ease;
       }
-      
       #order-panel.show {
         transform: translateY(0);
       }
-      
       .product-info-ar {
         display: flex;
         justify-content: space-between;
         color: white;
         margin-bottom: 15px;
       }
-      
       .order-controls {
         display: flex;
         gap: 15px;
         align-items: center;
       }
-      
       .quantity-control {
         display: flex;
         align-items: center;
@@ -197,7 +179,6 @@
         border-radius: 25px;
         color: white;
       }
-      
       .qty-btn {
         width: 35px;
         height: 35px;
@@ -209,7 +190,6 @@
         color: white;
         font-size: 18px;
       }
-      
       .confirm-btn {
         flex: 1;
         padding: 15px;
@@ -219,36 +199,42 @@
         border-radius: 25px;
         font-weight: bold;
         cursor: pointer;
-        font-size: 16px;
       }
-      
+      .camera-status {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        color: #ff9800;
+        font-size: 12px;
+        z-index: 200;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
+        border-radius: 20px;
+      }
       .config-panel {
-        position: fixed;
+        position: absolute;
         top: 10px;
         right: 10px;
         z-index: 300;
         display: flex;
         gap: 5px;
       }
-      
       .config-panel input {
-        padding: 8px;
+        padding: 5px;
         border-radius: 5px;
         border: none;
         font-size: 12px;
-        background: rgba(0,0,0,0.7);
-        color: white;
       }
-      
       .config-panel button {
-        padding: 8px 12px;
+        padding: 5px 10px;
         border-radius: 5px;
         border: none;
         background: #4caf50;
         color: white;
         cursor: pointer;
       }
-      
+
+      /* ESTILOS DO CARRINHO */
       #cart-btn {
         position: fixed;
         bottom: 20px;
@@ -263,9 +249,8 @@
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         cursor: pointer;
         display: none;
-        font-size: 16px;
       }
-      
+
       #cart-screen {
         position: fixed;
         top: 0;
@@ -277,7 +262,7 @@
         display: none;
         flex-direction: column;
       }
-      
+
       .cart-header {
         background: #4caf50;
         padding: 20px;
@@ -286,13 +271,13 @@
         justify-content: space-between;
         align-items: center;
       }
-      
+
       .cart-items {
         flex: 1;
         overflow-y: auto;
         padding: 20px;
       }
-      
+
       .cart-item {
         display: flex;
         justify-content: space-between;
@@ -300,20 +285,20 @@
         padding: 15px 0;
         border-bottom: 1px solid #eee;
       }
-      
+
       .cart-footer {
         padding: 20px;
         border-top: 2px solid #eee;
         background: #f9f9f9;
       }
-      
+
       .total-price {
         font-size: 22px;
         font-weight: bold;
         text-align: right;
         margin-bottom: 15px;
       }
-      
+
       .send-order-btn {
         width: 100%;
         padding: 18px;
@@ -325,12 +310,12 @@
         font-weight: bold;
         cursor: pointer;
       }
-      
+
       .close-cart {
         background: none;
         border: none;
         color: white;
-        font-size: 28px;
+        font-size: 24px;
         font-weight: bold;
         cursor: pointer;
       }
@@ -348,69 +333,55 @@
         font-size: 12px;
         pointer-events: none;
         white-space: nowrap;
-        display: none;
       }
       
-      .gesture-overlay {
+      .gesture-instruction {
         position: fixed;
-        bottom: 20px;
+        bottom: 80px;
         left: 20px;
         background: rgba(0,0,0,0.6);
         color: #ff9800;
         padding: 8px 12px;
         border-radius: 20px;
-        font-size: 12px;
-        z-index: 150;
-        pointer-events: none;
-        font-weight: bold;
-        display: none;
-      }
-      
-      .ar-status {
-        position: fixed;
-        bottom: 10px;
-        right: 10px;
-        background: rgba(0,0,0,0.6);
-        color: #ff9800;
-        padding: 5px 10px;
-        border-radius: 20px;
         font-size: 11px;
         z-index: 150;
+        pointer-events: none;
         font-weight: bold;
       }
     </style>
   </head>
   <body>
-    <!-- Cena AR.js - Modo sem marcador (câmera apenas) -->
+    <video id="video-background" autoplay playsinline muted></video>
+
     <a-scene
       id="ar-scene"
       embedded
-      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
       vr-mode-ui="enabled: false"
+      background="transparent: true"
       gesture-detector
     >
-      <!-- Câmera AR.js -->
-      <a-entity camera></a-entity>
+      <a-light type="ambient" intensity="1.2"></a-light>
+      <a-light type="directional" intensity="0.8" position="1 2 1"></a-light>
+      <a-light type="point" intensity="0.5" position="0 2 0"></a-light>
       
-      <!-- Container do modelo - INICIALMENTE VAZIO, só aparece quando clicar no produto -->
+      <a-entity camera position="0 0 0">
+        <a-entity
+          cursor="rayOrigin: mouse"
+          raycaster="objects: .clickable"
+        ></a-entity>
+      </a-entity>
+
+      <!-- Container que vai receber o modelo com suporte a gestos -->
       <a-entity
         id="ar-model-container"
-        gesture-handler="enabled: true"
-        position="0 0 -3"
-        rotation="0 0 0"
-        scale="1 1 1"
+        position="0 0.5 -4"
+        gesture-handler
       >
         <a-entity
           id="ar-model"
           class="clickable"
         ></a-entity>
       </a-entity>
-      
-      <!-- Luzes para iluminar o modelo -->
-      <a-light type="ambient" intensity="1.2"></a-light>
-      <a-light type="directional" intensity="0.8" position="1 2 1"></a-light>
-      <a-light type="point" intensity="0.5" position="0 2 0"></a-light>
-      <a-light type="point" intensity="0.3" position="0 -1 1"></a-light>
     </a-scene>
 
     <div class="config-panel">
@@ -443,18 +414,26 @@
         <div class="total-price">
           Total: <span id="cart-total-value">R$ 0,00</span>
         </div>
-        <button class="send-order-btn" onclick="sendFullOrder()">
+        <button
+          id="final-send-btn"
+          class="send-order-btn"
+          onclick="sendFullOrder()"
+        >
           🚀 Enviar Pedido para Cozinha
         </button>
       </div>
     </div>
 
-    <button id="back-btn" onclick="backToMenu()">← Voltar ao Cardápio</button>
+    <button id="back-btn" onclick="backToMenu()">← Voltar</button>
 
     <div id="order-panel">
       <div class="product-info-ar">
-        <span id="ar-product-name" style="font-weight: bold; font-size: 18px">---</span>
-        <span id="ar-product-price" style="color: #4caf50; font-size: 18px">R$ 0,00</span>
+        <span id="ar-product-name" style="font-weight: bold; font-size: 18px"
+          >---</span
+        >
+        <span id="ar-product-price" style="color: #4caf50; font-size: 18px"
+          >R$ 0,00</span
+        >
       </div>
       <div class="order-controls">
         <div class="quantity-control">
@@ -468,48 +447,43 @@
       </div>
     </div>
 
-    <div class="instruction" id="instruction">🎯 Aponte a câmera para o ambiente - O modelo 3D aparecerá na sua frente!</div>
-    <div class="gesture-overlay" id="gesture-overlay">
-      ✋ Gestos disponíveis:<br>
-      • 1 dedo: Move o modelo<br>
-      • 2 dedos girando: Rotaciona<br>
-      • Pinça: Aumenta/diminui
-    </div>
-    <div class="ar-status" id="ar-status">📷 Câmera pronta - Escolha um produto no cardápio</div>
+    <div class="camera-status" id="camera-status">📷 Aguardando câmera...</div>
+    <div class="instruction">👆 Toque no modelo para pausar/rodar animação</div>
+    <div class="gesture-instruction">✋ Use dois dedos para mover, girar e aumentar/diminuir o modelo!</div>
 
     <script>
-      // Produtos
+      // 1. Dados e Estado
       const products = [
         {
           id: 1,
           name: "Hambúrguer Artesanal",
-          description: "Carne 180g, queijo, bacon, alface e tomate",
-          price: 32.90,
+          description: "Carne 180g, queijo, bacon",
+          price: 32.9,
           modelFile: "hamburguer.glb",
           image: "https://viagem.cnnbrasil.com.br/wp-content/uploads/sites/5/2022/05/origem-do-hambuguer-cnn4.jpg?w=1200&h=900&crop=1",
           color: "#ff9800",
-          scale: "0.8 0.8 0.8"
+          scale: "0.25 0.25 0.25"
         },
         {
           id: 2,
           name: "Pizza Margherita",
           description: "Mussarela, manjericão, tomate e azeite",
-          price: 45.90,
+          price: 45.9,
           modelFile: "pizza.glb",
           image: "https://images.aws.nestle.recipes/original/1821a30a8a8acec9f74a1372be582610_sem_t%C3%ADtulo_(18).jpg",
           color: "#f44336",
-          scale: "1.2 1.2 1.2"
+          scale: "0.8 0.8 0.8"
         },
         {
           id: 3,
           name: "Refrigerante",
-          description: "Coca-Cola 350ml - Bem gelada",
-          price: 7.50,
+          description: "Coca-Cola 350ml",
+          price: 7.5,
           modelFile: "coca.glb",
           image: "https://s3.amazonaws.com/lepok.w/produtos/produtos/26244.webp",
           color: "#2196f3",
-          scale: "0.6 0.6 0.6"
-        }
+          scale: "0.25 0.25 0.25"
+        },
       ];
 
       let cart = [];
@@ -528,7 +502,24 @@
         document.getElementById("backend-url").value = savedUrl;
       }
 
-      // Renderizar produtos do cardápio
+      // 2. Funções de Câmera
+      async function setupCamera() {
+        const video = document.getElementById("video-background");
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+          });
+          video.srcObject = stream;
+          document.getElementById("camera-status").textContent = "📷 Câmera Ativa";
+          document.getElementById("camera-status").style.color = "#4caf50";
+        } catch (e) {
+          document.getElementById("camera-status").textContent = "⚠️ Erro na câmera";
+          document.getElementById("camera-status").style.color = "#ff5252";
+          console.error("Erro ao acessar câmera:", e);
+        }
+      }
+
+      // 3. Renderização do Cardápio
       function renderProducts() {
         const container = document.getElementById("product-list");
         container.innerHTML = "";
@@ -543,25 +534,24 @@
               <h3>${p.name}</h3>
               <p style="color: #666; font-size: 14px; margin: 5px 0;">${p.description}</p>
               <div class="product-price">R$ ${p.price.toFixed(2)}</div>
-              <button class="select-btn" onclick="selectProduct(${p.id})">🔍 Ver em Realidade Aumentada</button>
+              <button class="select-btn" onclick="selectProduct(${p.id})">🔍 Ver em 3D</button>
             </div>
           `;
           container.appendChild(card);
         });
       }
 
-      // Selecionar produto - SÓ AQUI O MODELO É CARREGADO!
-      window.selectProduct = function(id) {
+      function selectProduct(id) {
         const product = products.find((p) => p.id === id);
         if (!product) return;
-        
         currentProduct = product;
         currentQuantity = 1;
         document.getElementById("quantity").textContent = "1";
         document.getElementById("ar-product-name").textContent = product.name;
-        document.getElementById("ar-product-price").textContent = `R$ ${product.price.toFixed(2)}`;
-        
-        // Limpar modelo anterior (se houver)
+        document.getElementById("ar-product-price").textContent =
+          `R$ ${product.price.toFixed(2)}`;
+
+        // Limpar modelo anterior
         const modelContainer = document.getElementById("ar-model");
         modelContainer.innerHTML = "";
         
@@ -569,73 +559,69 @@
         const model = document.createElement("a-entity");
         model.setAttribute(
           "gltf-model",
-          `url(assets/models/${product.modelFile})`
+          `url(assets/models/${product.modelFile})`,
         );
         model.setAttribute("scale", product.scale);
         model.setAttribute("class", "clickable");
-        
-        // Adicionar animação de rotação
+
+        // Configurar animação de rotação automática
         model.setAttribute("animation", {
           property: "rotation",
           to: "0 360 0",
           dur: 15000,
           easing: "linear",
           loop: true,
-          enabled: true
+          enabled: true,
         });
-        
+
         // Evento de clique para pausar/retomar animação
-        model.addEventListener("click", function(e) {
+        model.addEventListener("click", function (e) {
           e.stopPropagation();
           const anim = model.getAttribute("animation");
           if (anim && anim.enabled) {
             model.setAttribute("animation", "enabled", false);
-            document.getElementById("ar-status").textContent = "⏸️ Animação pausada";
+            document.getElementById("camera-status").textContent = "⏸️ Animação pausada";
             isRotating = false;
           } else {
             model.setAttribute("animation", "enabled", true);
-            document.getElementById("ar-status").textContent = "🔄 Animação rodando";
+            document.getElementById("camera-status").textContent = "🔄 Animação rodando";
             isRotating = true;
           }
           setTimeout(() => {
-            document.getElementById("ar-status").textContent = "📷 AR Ativo - Use os gestos!";
+            if (document.getElementById("camera-status").textContent.includes("pausada") || 
+                document.getElementById("camera-status").textContent.includes("rodando")) {
+              document.getElementById("camera-status").textContent = "📷 Câmera Ativa";
+            }
           }, 2000);
         });
-        
+
         modelContainer.appendChild(model);
         currentModel = model;
-        
-        // Resetar transformações do container
+
+        // Resetar a posição do container pai
         const container = document.getElementById("ar-model-container");
-        if (container) {
-          container.setAttribute("position", "0 0 -3");
-          container.setAttribute("rotation", "0 0 0");
-          container.setAttribute("scale", "1 1 1");
-        }
-        
-        // Mostrar painel AR
+        container.setAttribute("position", "0 0.5 -4");
+        container.setAttribute("rotation", "0 0 0");
+        container.setAttribute("scale", "1 1 1");
+
         document.getElementById("menu-screen").classList.add("hide");
         document.getElementById("back-btn").style.display = "block";
         document.getElementById("order-panel").classList.add("show");
         
-        // Mostrar instruções
-        document.getElementById("instruction").style.display = "block";
-        document.getElementById("gesture-overlay").style.display = "block";
-        document.getElementById("ar-status").textContent = "✅ Modelo 3D carregado! Use os gestos para interagir";
-        
-        // Esconder instrução após alguns segundos
+        // Mostrar instruções de gestos
         setTimeout(() => {
-          const instruction = document.getElementById("instruction");
-          if (instruction) {
-            instruction.style.opacity = "0.5";
-          }
-        }, 5000);
-      };
+          const gestureInstruction = document.querySelector(".gesture-instruction");
+          gestureInstruction.style.opacity = "1";
+          setTimeout(() => {
+            gestureInstruction.style.opacity = "0.7";
+          }, 5000);
+        }, 1000);
+      }
 
-      // Adicionar ao carrinho
-      window.addToCart = function() {
+      // 4. Lógica do Carrinho
+      function addToCart() {
         if (!currentProduct) return;
-        
+
         const existingItem = cart.find((item) => item.id === currentProduct.id);
         if (existingItem) {
           existingItem.quantity += currentQuantity;
@@ -647,13 +633,12 @@
             quantity: currentQuantity,
           });
         }
-        
+
         updateCartButton();
         alert(`✅ ${currentQuantity}x ${currentProduct.name} adicionado ao pedido!`);
         backToMenu();
-      };
+      }
 
-      // Atualizar botão do carrinho
       function updateCartButton() {
         const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
         const btn = document.getElementById("cart-btn");
@@ -661,23 +646,20 @@
         btn.style.display = totalItems > 0 ? "block" : "none";
       }
 
-      // Abrir carrinho
-      window.openCart = function() {
+      function openCart() {
         renderCartItems();
         document.getElementById("cart-screen").style.display = "flex";
-      };
+      }
 
-      // Fechar carrinho
-      window.closeCart = function() {
+      function closeCart() {
         document.getElementById("cart-screen").style.display = "none";
-      };
+      }
 
-      // Renderizar itens do carrinho
       function renderCartItems() {
         const container = document.getElementById("cart-items-container");
         container.innerHTML = "";
         let total = 0;
-        
+
         cart.forEach((item, index) => {
           const itemTotal = item.price * item.quantity;
           total += itemTotal;
@@ -690,39 +672,41 @@
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="font-size: 18px;">${item.quantity}x</span>
-              <button onclick="removeFromCart(${index})" style="background:#ff5252; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">Remover</button>
+              <button onclick="removeFromCart(${index})" style="background:#ff5252; color:white; border:none; padding:5px 8px; border-radius:5px; cursor:pointer;">Remover</button>
             </div>
           `;
           container.appendChild(div);
         });
-        
+
         document.getElementById("cart-total-value").textContent = `R$ ${total.toFixed(2)}`;
         if (cart.length === 0) {
           container.innerHTML = "<p style='text-align:center; color:#999'>Seu carrinho está vazio.</p>";
+          document.getElementById("final-send-btn").disabled = true;
+        } else {
+          document.getElementById("final-send-btn").disabled = false;
         }
       }
 
-      // Remover do carrinho
-      window.removeFromCart = function(index) {
+      function removeFromCart(index) {
         cart.splice(index, 1);
         renderCartItems();
         updateCartButton();
         if (cart.length === 0) closeCart();
-      };
+      }
 
-      // Enviar pedido completo
-      window.sendFullOrder = async function() {
+      // 5. Envio do Pedido Completo
+      async function sendFullOrder() {
         if (cart.length === 0) return;
-        
-        const btn = document.querySelector("#cart-screen .send-order-btn");
-        const originalText = btn.textContent;
+
+        const btn = document.getElementById("final-send-btn");
         btn.disabled = true;
         btn.textContent = "🚀 Enviando...";
-        
+
         const urlParams = new URLSearchParams(window.location.search);
         const tableNum = parseInt(urlParams.get("mesa")) || 1;
+
         const cleanUrl = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
-        
+
         try {
           const promises = cart.map((item) => {
             const orderData = {
@@ -740,64 +724,45 @@
               body: JSON.stringify(orderData),
             });
           });
-          
+
           const results = await Promise.all(promises);
           const allOk = results.every((res) => res.ok);
-          
+
           if (allOk) {
-            alert("🚀 Pedido enviado para a cozinha com sucesso!");
+            alert("🚀 SUCESSO! Todos os itens foram enviados para a cozinha.");
             cart = [];
             updateCartButton();
             closeCart();
             backToMenu();
           } else {
-            alert("⚠️ Alguns itens não foram enviados. Verifique com o garçom.");
+            alert("⚠️ Alguns itens podem não ter sido enviados. Verifique com o garçom.");
           }
         } catch (e) {
           alert("❌ Erro de conexão com o servidor!");
           console.error(e);
         } finally {
           btn.disabled = false;
-          btn.textContent = originalText;
+          btn.textContent = "🚀 Enviar Pedido para Cozinha";
         }
-      };
+      }
 
-      // Atualizar quantidade
-      window.updateQty = function(val) {
+      // Utilitários
+      function updateQty(val) {
         currentQuantity = Math.max(1, currentQuantity + val);
         document.getElementById("quantity").textContent = currentQuantity;
-      };
+      }
 
-      // Voltar ao menu
-      window.backToMenu = function() {
+      function backToMenu() {
         document.getElementById("menu-screen").classList.remove("hide");
         document.getElementById("back-btn").style.display = "none";
         document.getElementById("order-panel").classList.remove("show");
-        
-        // Limpar o modelo 3D
         document.getElementById("ar-model").innerHTML = "";
-        
-        // Esconder instruções
-        document.getElementById("instruction").style.display = "none";
-        document.getElementById("gesture-overlay").style.display = "none";
-        document.getElementById("ar-status").textContent = "📷 Câmera pronta - Escolha um produto no cardápio";
-      };
+      }
 
-      // Salvar URL do backend
-      window.saveUrl = function() {
+      function saveUrl() {
         BACKEND_URL = document.getElementById("backend-url").value;
         localStorage.setItem("backend_url", BACKEND_URL);
-        alert("URL do backend salva!");
-      };
-
-      // Verificar status da câmera
-      function checkCameraStatus() {
-        const video = document.querySelector('video');
-        if (video && video.srcObject) {
-          document.getElementById("ar-status").style.color = "#4caf50";
-        } else {
-          setTimeout(checkCameraStatus, 1000);
-        }
+        alert("URL salva!");
       }
 
       // Inicialização
@@ -806,12 +771,10 @@
         document.getElementById("table-number").textContent = urlParams.get("mesa") || "1";
         document.getElementById("confirm-order").onclick = addToCart;
         renderProducts();
+        setupCamera();
         
-        // Aguardar a câmera iniciar
-        setTimeout(checkCameraStatus, 2000);
-        
-        console.log("Cardápio AR iniciado - O modelo só aparece ao clicar em 'Ver em 3D'!");
-        console.log("Use os gestos para interagir com o modelo 3D!");
+        console.log("Cardápio 3D iniciado - Gestos habilitados!");
+        console.log("Use dois dedos para mover, rotacionar e escalar o modelo 3D!");
       };
     </script>
   </body>

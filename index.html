@@ -1213,14 +1213,17 @@
 
       window.sendFullOrder = async function () {
         if (cart.length === 0) return;
+
         const btn = document.querySelector("#cart-screen .send-order-btn");
         const original = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
         const tableNum =
           parseInt(new URLSearchParams(window.location.search).get("mesa")) ||
           1;
         const cleanUrl = BACKEND_URL.replace(/\/$/, "");
+
         try {
           const results = await Promise.all(
             cart.map((item) =>
@@ -1238,6 +1241,7 @@
               }),
             ),
           );
+
           if (results.every((r) => r.ok)) {
             cart = [];
             updateCartButton();
@@ -1245,15 +1249,22 @@
             backToMenu();
             showToast("✅ Pedido enviado com sucesso!", "#4CAF50");
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-          } else showToast("⚠️ Erro ao enviar pedido", "#F44336");
+          } else {
+            // 🔧 CORREÇÃO: Mensagem mais amigável
+            const errorCount = results.filter((r) => !r.ok).length;
+            showToast(
+              `⚠️ ${errorCount} item(ns) não enviados. Tente novamente.`,
+              "#F44336",
+            );
+          }
         } catch (e) {
-          showToast("❌ Erro de conexão!", "#F44336");
+          console.error("Erro:", e);
+          showToast("❌ Erro de conexão! Verifique sua internet.", "#F44336");
         } finally {
           btn.disabled = false;
           btn.innerHTML = original;
         }
       };
-
       window.updateQty = function (val) {
         currentQuantity = Math.max(1, currentQuantity + val);
         document.getElementById("quantity").textContent = currentQuantity;
@@ -1267,15 +1278,61 @@
         closeInfoPanel();
       };
       window.saveUrl = function () {
-        BACKEND_URL = document.getElementById("backend-url").value;
+        let newUrl = document.getElementById("backend-url").value;
+
+        // 🔧 VALIDAÇÃO: Verifica se a URL não está vazia
+        if (!newUrl || newUrl.trim() === "") {
+          showToast("⚠️ Por favor, insira uma URL válida!", "#F44336");
+          return;
+        }
+
+        // 🔧 CORREÇÃO: Remove espaços em branco
+        newUrl = newUrl.trim();
+
+        // 🔧 CORREÇÃO: Adiciona https:// se não tiver protocolo
+        if (!newUrl.startsWith("http://") && !newUrl.startsWith("https://")) {
+          newUrl = "https://" + newUrl;
+        }
+
+        // 🔧 CORREÇÃO: Remove barra do final se existir
+        newUrl = newUrl.replace(/\/$/, "");
+
+        // 🔧 VALIDAÇÃO: Verifica se a URL é válida (formato básico)
+        const urlPattern =
+          /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+        if (
+          !urlPattern.test(newUrl) &&
+          !newUrl.includes("localhost") &&
+          !newUrl.includes("ngrok")
+        ) {
+          console.warn(
+            "⚠️ URL parece inválida, mas tentando conectar:",
+            newUrl,
+          );
+        }
+
+        console.log(`💾 Salvando URL: ${newUrl}`);
+
+        // Salva a URL
+        BACKEND_URL = newUrl;
         localStorage.setItem("backend_url", BACKEND_URL);
-        showToast("URL salva! Reconectando...", "#4CAF50");
+
+        // Atualiza o campo de input com a URL limpa
+        document.getElementById("backend-url").value = BACKEND_URL;
+
+        // Mostra feedback
+        showToast(`✅ URL salva: ${BACKEND_URL}`, "#4CAF50");
+
+        // Reconecta WebSocket
         const tableNum =
           parseInt(new URLSearchParams(window.location.search).get("mesa")) ||
           1;
-        connectWebSocket(tableNum);
-      };
 
+        // Pequeno delay para garantir que o toast seja visto
+        setTimeout(() => {
+          connectWebSocket(tableNum);
+        }, 500);
+      };
       window.onload = () => {
         const tableNum =
           parseInt(new URLSearchParams(window.location.search).get("mesa")) ||

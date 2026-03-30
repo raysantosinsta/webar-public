@@ -368,6 +368,140 @@
         transform: scale(0.98);
       }
       
+      /* INFO PANEL - NOVO: Seção de ingredientes e informações */
+      #info-panel {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(20px);
+        border-radius: 28px;
+        padding: 20px;
+        z-index: 180;
+        transform: translateY(150%);
+        transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        max-height: 40vh;
+        overflow-y: auto;
+      }
+      
+      #info-panel.show {
+        transform: translateY(0);
+      }
+      
+      #info-panel::-webkit-scrollbar {
+        width: 4px;
+      }
+      
+      #info-panel::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+      }
+      
+      #info-panel::-webkit-scrollbar-thumb {
+        background: #ff6b35;
+        border-radius: 10px;
+      }
+      
+      .info-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      }
+      
+      .info-header i {
+        font-size: 24px;
+        color: #ff6b35;
+      }
+      
+      .info-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: white;
+        margin: 0;
+      }
+      
+      .ingredients-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      
+      .ingredient-tag {
+        background: rgba(255, 107, 53, 0.15);
+        border: 1px solid rgba(255, 107, 53, 0.3);
+        border-radius: 40px;
+        padding: 6px 14px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      
+      .ingredient-tag i {
+        font-size: 12px;
+        color: #ff6b35;
+      }
+      
+      .info-description {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 16px;
+      }
+      
+      .info-nutrition {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 12px;
+        margin-top: 12px;
+      }
+      
+      .nutrition-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 6px;
+      }
+      
+      .nutrition-item span:first-child {
+        font-weight: 500;
+      }
+      
+      .nutrition-item span:last-child {
+        color: #ff6b35;
+        font-weight: 600;
+      }
+      
+      .close-info {
+        position: absolute;
+        top: 16px;
+        right: 20px;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      
+      .close-info:hover {
+        color: #ff6b35;
+        transform: rotate(90deg);
+      }
+      
+      /* Ajuste para quando o info panel está aberto */
+      #order-panel.show + #info-panel.show {
+        bottom: calc(20px + 80px);
+      }
+      
       /* Cart Button Premium */
       #cart-btn {
         position: fixed;
@@ -668,6 +802,16 @@
           font-size: 11px;
           white-space: nowrap;
         }
+        
+        #info-panel {
+          max-height: 35vh;
+          padding: 16px;
+        }
+        
+        .ingredient-tag {
+          font-size: 11px;
+          padding: 4px 10px;
+        }
       }
     </style>
   </head>
@@ -756,6 +900,20 @@
       </div>
     </div>
 
+    <!-- NOVO: Painel de Informações do Produto -->
+    <div id="info-panel">
+      <button class="close-info" onclick="closeInfoPanel()">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="info-header">
+        <i class="fas fa-info-circle"></i>
+        <h3>Informações do Produto</h3>
+      </div>
+      <div id="info-content">
+        <!-- Conteúdo dinâmico será inserido aqui -->
+      </div>
+    </div>
+
     <div class="camera-status" id="camera-status">
       <i class="fas fa-camera"></i> Aguardando câmera...
     </div>
@@ -767,28 +925,60 @@
     </div>
 
     <script>
-      // Produtos com performance otimizada
+      // Produtos com informações detalhadas
       const products = [
         {
           id: 1,
           name: "Hambúrguer Artesanal",
-          description: "Carne 180g, queijo, bacon, alface e tomate",
+          description: "Delicioso hambúrguer artesanal preparado com ingredientes selecionados",
           price: 32.9,
           modelFile: "hamburguer.glb",
           image: "https://viagem.cnnbrasil.com.br/wp-content/uploads/sites/5/2022/05/origem-do-hambuguer-cnn4.jpg?w=1200&h=900&crop=1",
           color: "#ff9800",
           scale: "0.25 0.25 0.25",
-          position: "0 -0.6 0"
+          position: "0 -0.6 0",
+          ingredients: [
+            "Carne Angus 180g",
+            "Queijo Cheddar",
+            "Bacon Crocante",
+            "Alface Americana",
+            "Tomate",
+            "Cebola Roxa",
+            "Pão Brioche",
+            "Molho Especial"
+          ],
+          nutrition: {
+            calories: "520 kcal",
+            protein: "32g",
+            carbs: "45g",
+            fat: "28g"
+          }
         },
         {
           id: 2,
           name: "Pizza Margherita",
-          description: "Mussarela, manjericão, tomate e azeite",
+          description: "Pizza tradicional italiana com ingredientes frescos",
           price: 45.9,
           modelFile: "pizza.glb",
           image: "https://images.aws.nestle.recipes/original/1821a30a8a8acec9f74a1372be582610_sem_t%C3%ADtulo_(18).jpg",
           color: "#f44336",
-          scale: "10 10 10",
+          scale: "0.9 0.9 0.9",
+          position: "0 0 0",
+          ingredients: [
+            "Massa Fininha",
+            "Molho de Tomate",
+            "Mussarela de Búfala",
+            "Manjericão Fresco",
+            "Azeite Extra Virgem",
+            "Tomate Cereja",
+            "Orégano"
+          ],
+          nutrition: {
+            calories: "780 kcal",
+            protein: "32g",
+            carbs: "95g",
+            fat: "28g"
+          }
         },
         {
           id: 3,
@@ -799,7 +989,20 @@
           image: "https://s3.amazonaws.com/lepok.w/produtos/produtos/26244.webp",
           color: "#2196f3",
           scale: "0.25 0.25 0.25",
-          position: "0 -0.2 0"
+          position: "0 -0.2 0",
+          ingredients: [
+            "Água Gaseificada",
+            "Açúcar",
+            "Extrato de Cola",
+            "Cafeína",
+            "Corante Caramelo"
+          ],
+          nutrition: {
+            calories: "140 kcal",
+            protein: "0g",
+            carbs: "39g",
+            fat: "0g"
+          }
         }
       ];
 
@@ -856,6 +1059,61 @@
         });
       }
 
+      // Função para exibir informações do produto no painel
+      function showProductInfo(product) {
+        const infoContent = document.getElementById("info-content");
+        
+        // Criar lista de ingredientes com ícones
+        const ingredientsHtml = product.ingredients.map(ing => `
+          <span class="ingredient-tag">
+            <i class="fas fa-check-circle"></i> ${ing}
+          </span>
+        `).join('');
+        
+        // Criar tabela nutricional
+        const nutritionHtml = product.nutrition ? `
+          <div class="info-nutrition">
+            <div class="nutrition-item">
+              <span><i class="fas fa-fire"></i> Calorias</span>
+              <span>${product.nutrition.calories}</span>
+            </div>
+            <div class="nutrition-item">
+              <span><i class="fas fa-dumbbell"></i> Proteínas</span>
+              <span>${product.nutrition.protein}</span>
+            </div>
+            <div class="nutrition-item">
+              <span><i class="fas fa-bread-slice"></i> Carboidratos</span>
+              <span>${product.nutrition.carbs}</span>
+            </div>
+            <div class="nutrition-item">
+              <span><i class="fas fa-oil-can"></i> Gorduras</span>
+              <span>${product.nutrition.fat}</span>
+            </div>
+          </div>
+        ` : '';
+        
+        infoContent.innerHTML = `
+          <div class="info-description">
+            <i class="fas fa-align-left"></i> ${product.description}
+          </div>
+          <div class="info-header" style="margin-top: 8px;">
+            <i class="fas fa-leaf"></i>
+            <h3 style="font-size: 16px;">Ingredientes</h3>
+          </div>
+          <div class="ingredients-list">
+            ${ingredientsHtml}
+          </div>
+          ${nutritionHtml}
+        `;
+        
+        // Mostrar o painel
+        document.getElementById("info-panel").classList.add("show");
+      }
+      
+      function closeInfoPanel() {
+        document.getElementById("info-panel").classList.remove("show");
+      }
+
       window.selectProduct = function(id) {
         const product = products.find((p) => p.id === id);
         if (!product) return;
@@ -907,6 +1165,9 @@
         document.getElementById("menu-screen").classList.add("hide");
         document.getElementById("back-btn").style.display = "flex";
         document.getElementById("order-panel").classList.add("show");
+        
+        // Mostrar informações do produto
+        showProductInfo(product);
       };
 
       window.addToCart = function() {
@@ -1047,6 +1308,7 @@
         document.getElementById("back-btn").style.display = "none";
         document.getElementById("order-panel").classList.remove("show");
         document.getElementById("ar-model").innerHTML = "";
+        closeInfoPanel();
       };
 
       window.saveUrl = function() {

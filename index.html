@@ -1211,61 +1211,67 @@
         if (navigator.vibrate) navigator.vibrate(30);
       };
 
-     window.sendFullOrder = async function() {
-  if (cart.length === 0) return;
-  
-  const btn = document.querySelector("#cart-screen .send-order-btn");
-  const original = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-  
-  const tableNum = parseInt(new URLSearchParams(window.location.search).get("mesa")) || 1;
-  const cleanUrl = BACKEND_URL.replace(/\/$/, "");
-  
-  // 🔧 CORREÇÃO: Enviar todos os itens de uma vez como um pedido completo
-  const orderItems = cart.map(item => ({
-    productId: String(item.id),
-    productName: item.name,
-    productPrice: item.price,
-    quantity: item.quantity,
-    tableNumber: tableNum,
-    status: "pending",
-    observation: "",
-  }));
-  
-  console.log(`📤 Enviando pedido da mesa ${tableNum} com ${orderItems.length} itens`);
-  
-  try {
-    // Usar o endpoint BULK para enviar todos os itens juntos
-    const response = await fetch(`${cleanUrl}/api/orders/bulk`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(orderItems),
-    });
-    
-    if (response.ok) {
-      const savedOrders = await response.json();
-      console.log(`✅ Pedido enviado com sucesso! ${savedOrders.length} itens`);
-      
-      cart = [];
-      updateCartButton();
-      closeCart();
-      backToMenu();
-      showToast("✅ Pedido enviado com sucesso!", "#4CAF50");
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-    } else {
-      const error = await response.text();
-      console.error("❌ Erro ao enviar:", error);
-      showToast("⚠️ Erro ao enviar pedido", "#F44336");
-    }
-  } catch (e) {
-    console.error("❌ Erro de conexão:", e);
-    showToast("❌ Erro de conexão! Verifique sua internet.", "#F44336");
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = original;
-  }
-};
+      window.sendFullOrder = async function () {
+        if (cart.length === 0) return;
+
+        const btn = document.querySelector("#cart-screen .send-order-btn");
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+        const tableNum =
+          parseInt(new URLSearchParams(window.location.search).get("mesa")) ||
+          1;
+        const cleanUrl = BACKEND_URL.replace(/\/$/, "");
+
+        // 🔧 CORREÇÃO: Garantir que os dados estão corretos
+        console.log(
+          "🛒 Carrinho sendo enviado:",
+          JSON.stringify(cart, null, 2),
+        );
+
+        try {
+          // Usar o endpoint BULK
+          const orderItems = cart.map((item) => ({
+            tableNumber: tableNum,
+            productId: String(item.id),
+            productName: item.name,
+            productPrice: Number(item.price), // 🔧 Garantir que é número
+            quantity: Number(item.quantity), // 🔧 Garantir que é número
+            status: "pending",
+            observation: "",
+          }));
+
+          console.log("📦 Itens sendo enviados:", orderItems);
+
+          const response = await fetch(`${cleanUrl}/api/orders/bulk`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(orderItems),
+          });
+
+          const result = await response.json();
+          console.log("✅ Resposta do servidor:", result);
+
+          if (response.ok) {
+            cart = [];
+            updateCartButton();
+            closeCart();
+            backToMenu();
+            showToast("✅ Pedido enviado com sucesso!", "#4CAF50");
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+          } else {
+            console.error("❌ Erro do servidor:", result);
+            showToast("⚠️ Erro ao enviar pedido", "#F44336");
+          }
+        } catch (e) {
+          console.error("❌ Erro de conexão:", e);
+          showToast("❌ Erro de conexão! Verifique sua internet.", "#F44336");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = original;
+        }
+      };
       window.updateQty = function (val) {
         currentQuantity = Math.max(1, currentQuantity + val);
         document.getElementById("quantity").textContent = currentQuantity;

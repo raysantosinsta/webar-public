@@ -519,7 +519,7 @@
         font-size: 11px;
         background: rgba(0, 0, 0, 0.7);
         color: white;
-        width: 180px;
+        width: 220px;
       }
       
       .config-panel button {
@@ -697,7 +697,7 @@
       
       @media (max-width: 768px) {
         .product-grid { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
-        .config-panel input { width: 140px; }
+        .config-panel input { width: 160px; }
         .gesture-instruction { bottom: 80px; font-size: 10px; }
         .instruction { font-size: 11px; }
         #visual-console { max-height: 180px; }
@@ -850,10 +850,9 @@
         updateConnectionStatus("connecting", "Conectando...");
         try {
           socket = io(wsUrl, {
-            query: { tableNumber: tableNumber, type: "customer", "ngrok-skip-browser-warning": "true" },
+            query: { tableNumber: tableNumber, type: "customer" },
             transports: ["websocket", "polling"],
-            reconnection: true, reconnectionAttempts: 5, reconnectionDelay: 2000, timeout: 10000,
-            transportOptions: { polling: { extraHeaders: { "ngrok-skip-browser-warning": "true" } } }
+            reconnection: true, reconnectionAttempts: 5, reconnectionDelay: 2000, timeout: 10000
           });
           socket.on("connect", () => { addLog(`✅ WebSocket conectado! ID: ${socket.id}`, 'success'); updateConnectionStatus("connected", "Conectado"); socket.emit("join-table", { tableNumber }); });
           socket.on("connect_error", (error) => { addLog(`❌ Erro: ${error.message}`, 'error'); updateConnectionStatus("disconnected", "Falha na conexão"); });
@@ -868,7 +867,7 @@
         const cleanUrl = BACKEND_URL.replace(/\/$/, '');
         addLog(`🔍 Testando HTTP: ${cleanUrl}/api/orders`, 'info');
         try {
-          const response = await fetch(`${cleanUrl}/api/orders`, { headers: { "ngrok-skip-browser-warning": "true" } });
+          const response = await fetch(`${cleanUrl}/api/orders`);
           if (response.ok) { const data = await response.json(); addLog(`✅ HTTP OK! ${data.length} pedidos`, 'success'); }
           else addLog(`⚠️ HTTP status: ${response.status}`, 'warning');
         } catch(e) { addLog(`❌ HTTP falhou: ${e.message}`, 'error'); }
@@ -919,9 +918,9 @@
         const cleanUrl = BACKEND_URL.replace(/\/$/, '');
         addLog(`📤 Enviando ${cart.length} itens para ${cleanUrl}/api/orders`, 'info');
         try {
-          const results = await Promise.all(cart.map(item => fetch(`${cleanUrl}/api/orders`, { method: "POST", headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" }, body: JSON.stringify({ tableNumber: tableNum, productId: String(item.id), productName: item.name, productPrice: item.price, quantity: item.quantity, status: "pending" }) })));
-          if (results.every(r => r.ok)) { addLog(`✅ Pedido enviado!`, 'success'); cart = []; updateCartButton(); closeCart(); backToMenu(); showToast("✅ Pedido enviado!", "#4CAF50"); if (navigator.vibrate) navigator.vibrate([100,50,100]); }
-          else addLog(`⚠️ Erro no envio`, 'warning');
+          const results = await Promise.all(cart.map(item => fetch(`${cleanUrl}/api/orders`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tableNumber: tableNum, productId: String(item.id), productName: item.name, productPrice: item.price, quantity: item.quantity, status: "pending" }) })));
+          if (results.every(r => r.ok)) { addLog(`✅ Pedido enviado com sucesso!`, 'success'); cart = []; updateCartButton(); closeCart(); backToMenu(); showToast("✅ Pedido enviado!", "#4CAF50"); if (navigator.vibrate) navigator.vibrate([100,50,100]); }
+          else { addLog(`⚠️ Erro no envio`, 'warning'); showToast("⚠️ Erro ao enviar pedido", "#F44336"); }
         } catch(e) { addLog(`❌ Erro: ${e.message}`, 'error'); showToast("❌ Erro de conexão!", "#F44336"); }
         finally { btn.disabled = false; btn.innerHTML = original; }
       };

@@ -319,13 +319,13 @@
         font-weight: bold;
         cursor: pointer;
       }
-      
+
       .instruction {
         position: fixed;
         top: 20px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0,0,0,0.7);
+        background: rgba(0, 0, 0, 0.7);
         color: white;
         padding: 8px 16px;
         border-radius: 20px;
@@ -334,12 +334,12 @@
         pointer-events: none;
         white-space: nowrap;
       }
-      
+
       .gesture-instruction {
         position: fixed;
         bottom: 80px;
         left: 20px;
-        background: rgba(0,0,0,0.6);
+        background: rgba(0, 0, 0, 0.6);
         color: #ff9800;
         padding: 8px 12px;
         border-radius: 20px;
@@ -363,7 +363,7 @@
       <a-light type="ambient" intensity="1.2"></a-light>
       <a-light type="directional" intensity="0.8" position="1 2 1"></a-light>
       <a-light type="point" intensity="0.5" position="0 2 0"></a-light>
-      
+
       <a-entity camera position="0 0 0">
         <a-entity
           cursor="rayOrigin: mouse"
@@ -372,15 +372,8 @@
       </a-entity>
 
       <!-- Container que vai receber o modelo com suporte a gestos -->
-      <a-entity
-        id="ar-model-container"
-        position="0 0.5 -4"
-        gesture-handler
-      >
-        <a-entity
-          id="ar-model"
-          class="clickable"
-        ></a-entity>
+      <a-entity id="ar-model-container" position="0 0.5 -4" gesture-handler>
+        <a-entity id="ar-model" class="clickable"></a-entity>
       </a-entity>
     </a-scene>
 
@@ -438,7 +431,9 @@
       <div class="order-controls">
         <div class="quantity-control">
           <button class="qty-btn" onclick="updateQty(-1)">-</button>
-          <span id="quantity" style="font-weight: bold; font-size: 18px">1</span>
+          <span id="quantity" style="font-weight: bold; font-size: 18px"
+            >1</span
+          >
           <button class="qty-btn" onclick="updateQty(1)">+</button>
         </div>
         <button id="confirm-order" class="confirm-btn">
@@ -449,7 +444,9 @@
 
     <div class="camera-status" id="camera-status">📷 Aguardando câmera...</div>
     <div class="instruction">👆 Toque no modelo para pausar/rodar animação</div>
-    <div class="gesture-instruction">✋ Use dois dedos para mover, girar e aumentar/diminuir o modelo!</div>
+    <div class="gesture-instruction">
+      ✋ Use dois dedos para mover, girar e aumentar/diminuir o modelo!
+    </div>
 
     <script>
       // 1. Dados e Estado
@@ -460,9 +457,11 @@
           description: "Carne 180g, queijo, bacon",
           price: 32.9,
           modelFile: "hamburguer.glb",
-          image: "https://viagem.cnnbrasil.com.br/wp-content/uploads/sites/5/2022/05/origem-do-hambuguer-cnn4.jpg?w=1200&h=900&crop=1",
+          image:
+            "https://viagem.cnnbrasil.com.br/wp-content/uploads/sites/5/2022/05/origem-do-hambuguer-cnn4.jpg?w=1200&h=900&crop=1",
           color: "#ff9800",
-          scale: "0.2 0.2 0.2"
+          scale: "0.2 0.2 0.2",
+          position: "0 -1 0", // ← ADICIONADO: move o hambúrguer para baixo (valor negativo)
         },
         {
           id: 2,
@@ -470,9 +469,10 @@
           description: "Mussarela, manjericão, tomate e azeite",
           price: 45.9,
           modelFile: "pizza.glb",
-          image: "https://images.aws.nestle.recipes/original/1821a30a8a8acec9f74a1372be582610_sem_t%C3%ADtulo_(18).jpg",
+          image:
+            "https://images.aws.nestle.recipes/original/1821a30a8a8acec9f74a1372be582610_sem_t%C3%ADtulo_(18).jpg",
           color: "#f44336",
-          scale: "10 10 10"
+          scale: "10 10 10",
         },
         {
           id: 3,
@@ -480,9 +480,10 @@
           description: "Coca-Cola 350ml",
           price: 7.5,
           modelFile: "coca.glb",
-          image: "https://s3.amazonaws.com/lepok.w/produtos/produtos/26244.webp",
+          image:
+            "https://s3.amazonaws.com/lepok.w/produtos/produtos/26244.webp",
           color: "#2196f3",
-          scale: "0.25 0.25 0.25"
+          scale: "0.25 0.25 0.25",
         },
       ];
 
@@ -492,7 +493,7 @@
       let BACKEND_URL = "http://192.168.30.106:3000/api";
       let currentModel = null;
       let isRotating = true;
-      
+
       document.getElementById("backend-url").value = BACKEND_URL;
 
       // Carregar URL salva
@@ -510,10 +511,12 @@
             video: { facingMode: "environment" },
           });
           video.srcObject = stream;
-          document.getElementById("camera-status").textContent = "📷 Câmera Ativa";
+          document.getElementById("camera-status").textContent =
+            "📷 Câmera Ativa";
           document.getElementById("camera-status").style.color = "#4caf50";
         } catch (e) {
-          document.getElementById("camera-status").textContent = "⚠️ Erro na câmera";
+          document.getElementById("camera-status").textContent =
+            "⚠️ Erro na câmera";
           document.getElementById("camera-status").style.color = "#ff5252";
           console.error("Erro ao acessar câmera:", e);
         }
@@ -554,7 +557,7 @@
         // Limpar modelo anterior
         const modelContainer = document.getElementById("ar-model");
         modelContainer.innerHTML = "";
-        
+
         // Criar novo modelo
         const model = document.createElement("a-entity");
         model.setAttribute(
@@ -580,17 +583,26 @@
           const anim = model.getAttribute("animation");
           if (anim && anim.enabled) {
             model.setAttribute("animation", "enabled", false);
-            document.getElementById("camera-status").textContent = "⏸️ Animação pausada";
+            document.getElementById("camera-status").textContent =
+              "⏸️ Animação pausada";
             isRotating = false;
           } else {
             model.setAttribute("animation", "enabled", true);
-            document.getElementById("camera-status").textContent = "🔄 Animação rodando";
+            document.getElementById("camera-status").textContent =
+              "🔄 Animação rodando";
             isRotating = true;
           }
           setTimeout(() => {
-            if (document.getElementById("camera-status").textContent.includes("pausada") || 
-                document.getElementById("camera-status").textContent.includes("rodando")) {
-              document.getElementById("camera-status").textContent = "📷 Câmera Ativa";
+            if (
+              document
+                .getElementById("camera-status")
+                .textContent.includes("pausada") ||
+              document
+                .getElementById("camera-status")
+                .textContent.includes("rodando")
+            ) {
+              document.getElementById("camera-status").textContent =
+                "📷 Câmera Ativa";
             }
           }, 2000);
         });
@@ -607,10 +619,12 @@
         document.getElementById("menu-screen").classList.add("hide");
         document.getElementById("back-btn").style.display = "block";
         document.getElementById("order-panel").classList.add("show");
-        
+
         // Mostrar instruções de gestos
         setTimeout(() => {
-          const gestureInstruction = document.querySelector(".gesture-instruction");
+          const gestureInstruction = document.querySelector(
+            ".gesture-instruction",
+          );
           gestureInstruction.style.opacity = "1";
           setTimeout(() => {
             gestureInstruction.style.opacity = "0.7";
@@ -635,7 +649,9 @@
         }
 
         updateCartButton();
-        alert(`✅ ${currentQuantity}x ${currentProduct.name} adicionado ao pedido!`);
+        alert(
+          `✅ ${currentQuantity}x ${currentProduct.name} adicionado ao pedido!`,
+        );
         backToMenu();
       }
 
@@ -678,9 +694,11 @@
           container.appendChild(div);
         });
 
-        document.getElementById("cart-total-value").textContent = `R$ ${total.toFixed(2)}`;
+        document.getElementById("cart-total-value").textContent =
+          `R$ ${total.toFixed(2)}`;
         if (cart.length === 0) {
-          container.innerHTML = "<p style='text-align:center; color:#999'>Seu carrinho está vazio.</p>";
+          container.innerHTML =
+            "<p style='text-align:center; color:#999'>Seu carrinho está vazio.</p>";
           document.getElementById("final-send-btn").disabled = true;
         } else {
           document.getElementById("final-send-btn").disabled = false;
@@ -705,7 +723,9 @@
         const urlParams = new URLSearchParams(window.location.search);
         const tableNum = parseInt(urlParams.get("mesa")) || 1;
 
-        const cleanUrl = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+        const cleanUrl = BACKEND_URL.endsWith("/")
+          ? BACKEND_URL.slice(0, -1)
+          : BACKEND_URL;
 
         try {
           const promises = cart.map((item) => {
@@ -735,7 +755,9 @@
             closeCart();
             backToMenu();
           } else {
-            alert("⚠️ Alguns itens podem não ter sido enviados. Verifique com o garçom.");
+            alert(
+              "⚠️ Alguns itens podem não ter sido enviados. Verifique com o garçom.",
+            );
           }
         } catch (e) {
           alert("❌ Erro de conexão com o servidor!");
@@ -768,13 +790,16 @@
       // Inicialização
       window.onload = () => {
         const urlParams = new URLSearchParams(window.location.search);
-        document.getElementById("table-number").textContent = urlParams.get("mesa") || "1";
+        document.getElementById("table-number").textContent =
+          urlParams.get("mesa") || "1";
         document.getElementById("confirm-order").onclick = addToCart;
         renderProducts();
         setupCamera();
-        
+
         console.log("Cardápio 3D iniciado - Gestos habilitados!");
-        console.log("Use dois dedos para mover, rotacionar e escalar o modelo 3D!");
+        console.log(
+          "Use dois dedos para mover, rotacionar e escalar o modelo 3D!",
+        );
       };
     </script>
   </body>

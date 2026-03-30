@@ -348,6 +348,7 @@
         font-size: 12px;
         pointer-events: none;
         white-space: nowrap;
+        display: none;
       }
       
       .gesture-overlay {
@@ -362,6 +363,7 @@
         z-index: 150;
         pointer-events: none;
         font-weight: bold;
+        display: none;
       }
       
       .ar-status {
@@ -379,38 +381,36 @@
     </style>
   </head>
   <body>
-    <!-- Cena AR.js - A câmera é gerenciada automaticamente pelo AR.js -->
+    <!-- Cena AR.js - Modo sem marcador (câmera apenas) -->
     <a-scene
       id="ar-scene"
       embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
+      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
       vr-mode-ui="enabled: false"
       gesture-detector
     >
       <!-- Câmera AR.js -->
       <a-entity camera></a-entity>
       
-      <!-- Marcador HIRO - O modelo aparece sobre este marcador -->
-      <a-marker id="ar-marker" preset="hiro">
-        <!-- Container do modelo com suporte a gestos -->
+      <!-- Container do modelo - INICIALMENTE VAZIO, só aparece quando clicar no produto -->
+      <a-entity
+        id="ar-model-container"
+        gesture-handler="enabled: true"
+        position="0 0 -3"
+        rotation="0 0 0"
+        scale="1 1 1"
+      >
         <a-entity
-          id="ar-model-container"
-          gesture-handler="enabled: true"
-          position="0 0 0"
-          rotation="0 0 0"
-          scale="1 1 1"
-        >
-          <a-entity
-            id="ar-model"
-            class="clickable"
-          ></a-entity>
-        </a-entity>
-      </a-marker>
+          id="ar-model"
+          class="clickable"
+        ></a-entity>
+      </a-entity>
       
       <!-- Luzes para iluminar o modelo -->
       <a-light type="ambient" intensity="1.2"></a-light>
       <a-light type="directional" intensity="0.8" position="1 2 1"></a-light>
       <a-light type="point" intensity="0.5" position="0 2 0"></a-light>
+      <a-light type="point" intensity="0.3" position="0 -1 1"></a-light>
     </a-scene>
 
     <div class="config-panel">
@@ -468,14 +468,14 @@
       </div>
     </div>
 
-    <div class="instruction">🎯 Aponte a câmera para o marcador HIRO</div>
-    <div class="gesture-overlay">
+    <div class="instruction" id="instruction">🎯 Aponte a câmera para o ambiente - O modelo 3D aparecerá na sua frente!</div>
+    <div class="gesture-overlay" id="gesture-overlay">
       ✋ Gestos disponíveis:<br>
       • 1 dedo: Move o modelo<br>
       • 2 dedos girando: Rotaciona<br>
       • Pinça: Aumenta/diminui
     </div>
-    <div class="ar-status" id="ar-status">📷 Iniciando AR...</div>
+    <div class="ar-status" id="ar-status">📷 Câmera pronta - Escolha um produto no cardápio</div>
 
     <script>
       // Produtos
@@ -518,7 +518,6 @@
       let BACKEND_URL = "http://192.168.30.106:3000/api";
       let currentModel = null;
       let isRotating = true;
-      let rotationInterval = null;
       
       document.getElementById("backend-url").value = BACKEND_URL;
 
@@ -551,7 +550,7 @@
         });
       }
 
-      // Selecionar produto
+      // Selecionar produto - SÓ AQUI O MODELO É CARREGADO!
       window.selectProduct = function(id) {
         const product = products.find((p) => p.id === id);
         if (!product) return;
@@ -562,7 +561,7 @@
         document.getElementById("ar-product-name").textContent = product.name;
         document.getElementById("ar-product-price").textContent = `R$ ${product.price.toFixed(2)}`;
         
-        // Limpar modelo anterior
+        // Limpar modelo anterior (se houver)
         const modelContainer = document.getElementById("ar-model");
         modelContainer.innerHTML = "";
         
@@ -599,7 +598,7 @@
             isRotating = true;
           }
           setTimeout(() => {
-            document.getElementById("ar-status").textContent = "📷 AR Ativo";
+            document.getElementById("ar-status").textContent = "📷 AR Ativo - Use os gestos!";
           }, 2000);
         });
         
@@ -609,7 +608,7 @@
         // Resetar transformações do container
         const container = document.getElementById("ar-model-container");
         if (container) {
-          container.setAttribute("position", "0 0 0");
+          container.setAttribute("position", "0 0 -3");
           container.setAttribute("rotation", "0 0 0");
           container.setAttribute("scale", "1 1 1");
         }
@@ -618,11 +617,15 @@
         document.getElementById("menu-screen").classList.add("hide");
         document.getElementById("back-btn").style.display = "block";
         document.getElementById("order-panel").classList.add("show");
-        document.getElementById("ar-status").textContent = "🎯 Aponte para o marcador HIRO";
+        
+        // Mostrar instruções
+        document.getElementById("instruction").style.display = "block";
+        document.getElementById("gesture-overlay").style.display = "block";
+        document.getElementById("ar-status").textContent = "✅ Modelo 3D carregado! Use os gestos para interagir";
         
         // Esconder instrução após alguns segundos
         setTimeout(() => {
-          const instruction = document.querySelector(".instruction");
+          const instruction = document.getElementById("instruction");
           if (instruction) {
             instruction.style.opacity = "0.5";
           }
@@ -770,7 +773,14 @@
         document.getElementById("menu-screen").classList.remove("hide");
         document.getElementById("back-btn").style.display = "none";
         document.getElementById("order-panel").classList.remove("show");
+        
+        // Limpar o modelo 3D
         document.getElementById("ar-model").innerHTML = "";
+        
+        // Esconder instruções
+        document.getElementById("instruction").style.display = "none";
+        document.getElementById("gesture-overlay").style.display = "none";
+        document.getElementById("ar-status").textContent = "📷 Câmera pronta - Escolha um produto no cardápio";
       };
 
       // Salvar URL do backend
@@ -780,18 +790,13 @@
         alert("URL do backend salva!");
       };
 
-      // Verificar status do AR
-      function checkARStatus() {
-        const marker = document.querySelector("a-marker");
-        if (marker) {
-          marker.addEventListener("markerFound", () => {
-            document.getElementById("ar-status").textContent = "✅ Marcador encontrado! Modelo aparecendo";
-            document.getElementById("ar-status").style.color = "#4caf50";
-          });
-          marker.addEventListener("markerLost", () => {
-            document.getElementById("ar-status").textContent = "🔍 Procure o marcador HIRO";
-            document.getElementById("ar-status").style.color = "#ff9800";
-          });
+      // Verificar status da câmera
+      function checkCameraStatus() {
+        const video = document.querySelector('video');
+        if (video && video.srcObject) {
+          document.getElementById("ar-status").style.color = "#4caf50";
+        } else {
+          setTimeout(checkCameraStatus, 1000);
         }
       }
 
@@ -801,9 +806,11 @@
         document.getElementById("table-number").textContent = urlParams.get("mesa") || "1";
         document.getElementById("confirm-order").onclick = addToCart;
         renderProducts();
-        checkARStatus();
         
-        console.log("Cardápio AR iniciado!");
+        // Aguardar a câmera iniciar
+        setTimeout(checkCameraStatus, 2000);
+        
+        console.log("Cardápio AR iniciado - O modelo só aparece ao clicar em 'Ver em 3D'!");
         console.log("Use os gestos para interagir com o modelo 3D!");
       };
     </script>

@@ -208,6 +208,90 @@
         border: none;
         font-size: 12px;
       }
+
+      /* ESTILOS NOVOS DO CARRINHO */
+      #cart-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #ff9800;
+        color: white;
+        border: none;
+        padding: 15px 25px;
+        border-radius: 50px;
+        font-weight: bold;
+        z-index: 150;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        cursor: pointer;
+        display: none; /* Só aparece quando tem itens */
+      }
+
+      #cart-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        z-index: 500;
+        display: none;
+        flex-direction: column;
+      }
+
+      .cart-header {
+        background: #4caf50;
+        padding: 20px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+      }
+
+      .cart-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      .cart-footer {
+        padding: 20px;
+        border-top: 2px solid #eee;
+        background: #f9f9f9;
+      }
+
+      .total-price {
+        font-size: 22px;
+        font-weight: bold;
+        text-align: right;
+        margin-bottom: 15px;
+      }
+
+      .send-order-btn {
+        width: 100%;
+        padding: 18px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .close-cart {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
@@ -236,7 +320,7 @@
         type="text"
         id="backend-url"
         placeholder="URL Backend"
-        value="http://localhost:3000/api"
+        value="http://192.168.30.106:3000/api"
       />
       <button onclick="saveUrl()" style="padding: 5px 10px; cursor: pointer">
         Salvar
@@ -249,6 +333,21 @@
         <div class="table-info">Mesa <span id="table-number">1</span></div>
       </div>
       <div id="product-list" class="product-grid"></div>
+    </div>
+
+    <button id="cart-btn" onclick="openCart()">🛒 Ver Pedido (0)</button>
+
+    <div id="cart-screen">
+      <div class="cart-header">
+        <h2>Seu Pedido</h2>
+        <button class="close-cart" onclick="closeCart()">✕</button>
+      </div>
+      <div id="cart-items-container" class="cart-items">
+        </div>
+      <div class="cart-footer">
+        <div class="total-price">Total: <span id="cart-total-value">R$ 0,00</span></div>
+        <button id="final-send-btn" class="send-order-btn" onclick="sendFullOrder()">🚀 Enviar Pedido para Cozinha</button>
+      </div>
     </div>
 
     <button id="back-btn">← Voltar</button>
@@ -268,7 +367,7 @@
           <span id="quantity" style="font-weight: bold">1</span>
           <button class="qty-btn" onclick="updateQty(1)">+</button>
         </div>
-        <button id="confirm-order" class="confirm-btn">📝 Fazer Pedido</button>
+        <button id="confirm-order" class="confirm-btn">🛒 Adicionar ao Pedido</button>
       </div>
     </div>
 
@@ -277,62 +376,30 @@
     <script>
       // 1. Dados e Estado
       const products = [
-        {
-          id: 1,
-          name: "Hambúrguer Artesanal",
-          description: "Carne 180g, queijo, bacon",
-          price: 32.9,
-          modelFile: "hamburguer.glb",
-          emoji: "🍔",
-          color: "#ff9800",
-          scale: "0.2 0.2 0.2",
-        },
-        {
-          id: 2,
-          name: "Pizza Margherita",
-          description: "Mussarela, manjericão",
-          price: 45.9,
-          modelFile: "pizza.glb",
-          emoji: "🍕",
-          color: "#f44336",
-          scale: "0.15 0.15 0.15",
-        },
-        {
-          id: 3,
-          name: "Refrigerante",
-          description: "Coca-Cola 350ml",
-          price: 7.5,
-          modelFile: "soda.glb",
-          emoji: "🥤",
-          color: "#2196f3",
-          scale: "0.2 0.2 0.2",
-        },
+        { id: 1, name: "Hambúrguer Artesanal", description: "Carne 180g, queijo, bacon", price: 32.9, modelFile: "hamburguer.glb", emoji: "🍔", color: "#ff9800", scale: "0.2 0.2 0.2" },
+        { id: 2, name: "Pizza Margherita", description: "Mussarela, manjericão", price: 45.9, modelFile: "pizza.glb", emoji: "🍕", color: "#f44336", scale: "0.15 0.15 0.15" },
+        { id: 3, name: "Refrigerante", description: "Coca-Cola 350ml", price: 7.5, modelFile: "soda.glb", emoji: "🥤", color: "#2196f3", scale: "0.2 0.2 0.2" },
       ];
 
+      let cart = [];
       let currentProduct = null;
       let currentQuantity = 1;
-
-      // Busca URL do localStorage ou usa o padrão com /api
-      let BACKEND_URL = "http://192.168.30.106:3000/api";
+      let BACKEND_URL = localStorage.getItem("backend_url") || "http://192.168.30.106:3000/api";
       document.getElementById("backend-url").value = BACKEND_URL;
 
       // 2. Funções de Câmera
       async function setupCamera() {
         const video = document.getElementById("video-background");
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-          });
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
           video.srcObject = stream;
-          document.getElementById("camera-status").textContent =
-            "📷 Câmera Ativa";
+          document.getElementById("camera-status").textContent = "📷 Câmera Ativa";
         } catch (e) {
-          document.getElementById("camera-status").textContent =
-            "⚠️ Erro na câmera";
+          document.getElementById("camera-status").textContent = "⚠️ Erro na câmera";
         }
       }
 
-      // 3. Renderização da Interface
+      // 3. Renderização do Cardápio
       function renderProducts() {
         const container = document.getElementById("product-list");
         container.innerHTML = "";
@@ -355,26 +422,18 @@
       function selectProduct(id) {
         const product = products.find((p) => p.id === id);
         if (!product) return;
-
         currentProduct = product;
         currentQuantity = 1;
         document.getElementById("quantity").textContent = "1";
         document.getElementById("ar-product-name").textContent = product.name;
-        document.getElementById("ar-product-price").textContent =
-          `R$ ${product.price.toFixed(2)}`;
-
+        document.getElementById("ar-product-price").textContent = `R$ ${product.price.toFixed(2)}`;
+        
         const modelParent = document.getElementById("ar-model");
         modelParent.innerHTML = "";
         const model = document.createElement("a-entity");
-        model.setAttribute(
-          "gltf-model",
-          `url(assets/models/${product.modelFile})`,
-        );
+        model.setAttribute("gltf-model", `url(assets/models/${product.modelFile})`);
         model.setAttribute("scale", product.scale);
-        model.setAttribute(
-          "animation",
-          "property: rotation; to: 0 360 0; dur: 20000; easing: linear; loop: true",
-        );
+        model.setAttribute("animation", "property: rotation; to: 0 360 0; dur: 20000; easing: linear; loop: true");
         modelParent.appendChild(model);
 
         document.getElementById("menu-screen").classList.add("hide");
@@ -382,64 +441,137 @@
         document.getElementById("order-panel").classList.add("show");
       }
 
-      // 4. Lógica de Envio (Onde estava o erro)
-      async function makeOrder() {
+      // 4. Lógica do Carrinho
+      function addToCart() {
         if (!currentProduct) return;
 
-        const btn = document.getElementById("confirm-order");
+        const existingItem = cart.find(item => item.id === currentProduct.id);
+        if (existingItem) {
+          existingItem.quantity += currentQuantity;
+        } else {
+          cart.push({
+            id: currentProduct.id,
+            name: currentProduct.name,
+            price: currentProduct.price,
+            quantity: currentQuantity
+          });
+        }
+
+        updateCartButton();
+        alert(`✅ ${currentQuantity}x ${currentProduct.name} adicionado ao pedido!`);
+        backToMenu();
+      }
+
+      function updateCartButton() {
+        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        const btn = document.getElementById("cart-btn");
+        btn.textContent = `🛒 Ver Pedido (${totalItems})`;
+        btn.style.display = totalItems > 0 ? "block" : "none";
+      }
+
+      function openCart() {
+        renderCartItems();
+        document.getElementById("cart-screen").style.display = "flex";
+      }
+
+      function closeCart() {
+        document.getElementById("cart-screen").style.display = "none";
+      }
+
+      function renderCartItems() {
+        const container = document.getElementById("cart-items-container");
+        container.innerHTML = "";
+        let total = 0;
+
+        cart.forEach((item, index) => {
+          const itemTotal = item.price * item.quantity;
+          total += itemTotal;
+          const div = document.createElement("div");
+          div.className = "cart-item";
+          div.innerHTML = `
+            <div>
+              <strong>${item.name}</strong><br>
+              <small>R$ ${item.price.toFixed(2)} un.</small>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span>${item.quantity}x</span>
+              <button onclick="removeFromCart(${index})" style="background:#ff5252; color:white; border:none; padding:5px 8px; border-radius:5px">Remover</button>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+
+        document.getElementById("cart-total-value").textContent = `R$ ${total.toFixed(2)}`;
+        if (cart.length === 0) {
+            container.innerHTML = "<p style='text-align:center; color:#999'>Seu carrinho está vazio.</p>";
+            document.getElementById("final-send-btn").disabled = true;
+        } else {
+            document.getElementById("final-send-btn").disabled = false;
+        }
+      }
+
+      function removeFromCart(index) {
+        cart.splice(index, 1);
+        renderCartItems();
+        updateCartButton();
+        if (cart.length === 0) closeCart();
+      }
+
+      // 5. Envio do Pedido Completo
+      async function sendFullOrder() {
+        if (cart.length === 0) return;
+
+        const btn = document.getElementById("final-send-btn");
         btn.disabled = true;
-        btn.textContent = "Enviando...";
+        btn.textContent = "🚀 Enviando...";
 
         const urlParams = new URLSearchParams(window.location.search);
         const tableNum = parseInt(urlParams.get("mesa")) || 1;
 
-        const orderData = {
-          tableNumber: tableNum,
-          productId: String(currentProduct.id),
-          productName: currentProduct.name,
-          productPrice: currentProduct.price,
-          quantity: currentQuantity,
-          status: "pending",
-          observation: "",
-        };
-
-        // Garante que a URL não termine com barra para não duplicar //orders
-        const cleanUrl = BACKEND_URL.endsWith("/")
-          ? BACKEND_URL.slice(0, -1)
-          : BACKEND_URL;
-        const targetUrl = `${cleanUrl}/orders`;
-
-        console.log("Enviando pedido para:", targetUrl);
-
+        // Limpa URL
+        const cleanUrl = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+        
+        // Vamos enviar os itens um por um (ou pode adaptar para um bulk se seu backend suportar)
+        // Aqui usaremos o seu endpoint atual /orders chamando para cada item
         try {
-          const res = await fetch(targetUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(orderData),
+          const promises = cart.map(item => {
+            const orderData = {
+              tableNumber: tableNum,
+              productId: String(item.id),
+              productName: item.name,
+              productPrice: item.price,
+              quantity: item.quantity,
+              status: "pending",
+              observation: ""
+            };
+            return fetch(`${cleanUrl}/orders`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(orderData),
+            });
           });
 
-          if (res.ok) {
-            alert("✅ Pedido enviado com sucesso!");
+          const results = await Promise.all(promises);
+          const allOk = results.every(res => res.ok);
+
+          if (allOk) {
+            alert("🚀 SUCESSO! Todos os itens foram enviados para a cozinha.");
+            cart = [];
+            updateCartButton();
+            closeCart();
             backToMenu();
           } else {
-            const err = await res
-              .json()
-              .catch(() => ({ message: "Erro desconhecido" }));
-            alert("❌ Servidor recusou: " + (err.message || res.statusText));
+            alert("⚠️ Alguns itens podem não ter sido enviados. Verifique com o garçom.");
           }
         } catch (e) {
-          console.error("Erro no fetch:", e);
-          alert(
-            "❌ Erro de conexão! Verifique se o backend está rodando em: " +
-              targetUrl,
-          );
+          alert("❌ Erro de conexão com o servidor!");
         } finally {
           btn.disabled = false;
-          btn.textContent = "📝 Fazer Pedido";
+          btn.textContent = "🚀 Enviar Pedido para Cozinha";
         }
       }
 
-      // 5. Utilitários
+      // Utilitários
       function updateQty(val) {
         currentQuantity = Math.max(1, currentQuantity + val);
         document.getElementById("quantity").textContent = currentQuantity;
@@ -455,18 +587,14 @@
       function saveUrl() {
         BACKEND_URL = document.getElementById("backend-url").value;
         localStorage.setItem("backend_url", BACKEND_URL);
-        alert("URL salva: " + BACKEND_URL);
+        alert("URL salva!");
       }
 
-      // 6. Inicialização
+      // Inicialização
       window.onload = () => {
         const urlParams = new URLSearchParams(window.location.search);
-        document.getElementById("table-number").textContent =
-          urlParams.get("mesa") || "1";
-
-        document.getElementById("back-btn").onclick = backToMenu;
-        document.getElementById("confirm-order").onclick = makeOrder;
-
+        document.getElementById("table-number").textContent = urlParams.get("mesa") || "1";
+        document.getElementById("confirm-order").onclick = addToCart;
         renderProducts();
         setupCamera();
       };

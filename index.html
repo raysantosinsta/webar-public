@@ -25,7 +25,6 @@
         font-family: sans-serif;
         background-color: #000;
       }
-
       #video-background {
         position: fixed;
         top: 0;
@@ -35,7 +34,6 @@
         object-fit: cover;
         z-index: -1;
       }
-
       #ar-scene {
         position: fixed;
         top: 0;
@@ -45,11 +43,9 @@
         z-index: 1;
         pointer-events: none;
       }
-
       #order-panel.show ~ #ar-scene {
         pointer-events: auto;
       }
-
       #menu-screen {
         position: absolute;
         top: 0;
@@ -67,7 +63,6 @@
         opacity: 0;
         pointer-events: none;
       }
-
       .header {
         background: rgba(0, 0, 0, 0.3);
         padding: 20px;
@@ -82,7 +77,6 @@
         border-radius: 25px;
         margin-top: 10px;
       }
-
       .product-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -113,7 +107,6 @@
         color: #4caf50;
         margin: 10px 0;
       }
-
       .select-btn {
         width: 100%;
         padding: 15px;
@@ -124,7 +117,6 @@
         cursor: pointer;
         font-size: 16px;
       }
-
       #back-btn {
         position: absolute;
         top: 20px;
@@ -138,7 +130,6 @@
         display: none;
         cursor: pointer;
       }
-
       #order-panel {
         position: absolute;
         bottom: 20px;
@@ -155,7 +146,6 @@
       #order-panel.show {
         transform: translateY(0);
       }
-
       .product-info-ar {
         display: flex;
         justify-content: space-between;
@@ -194,7 +184,6 @@
         font-weight: bold;
         cursor: pointer;
       }
-
       .camera-status {
         position: absolute;
         bottom: 10px;
@@ -247,7 +236,7 @@
         type="text"
         id="backend-url"
         placeholder="URL Backend"
-        value="http://localhost:3000"
+        value="http://localhost:3000/api"
       />
       <button onclick="saveUrl()" style="padding: 5px 10px; cursor: pointer">
         Salvar
@@ -286,6 +275,7 @@
     <div class="camera-status" id="camera-status">📷 Aguardando câmera...</div>
 
     <script>
+      // 1. Dados e Estado
       const products = [
         {
           id: 1,
@@ -296,7 +286,6 @@
           emoji: "🍔",
           color: "#ff9800",
           scale: "0.2 0.2 0.2",
-          position: "0 0.5 -4",
         },
         {
           id: 2,
@@ -307,7 +296,6 @@
           emoji: "🍕",
           color: "#f44336",
           scale: "0.15 0.15 0.15",
-          position: "0 0 -3",
         },
         {
           id: 3,
@@ -318,16 +306,18 @@
           emoji: "🥤",
           color: "#2196f3",
           scale: "0.2 0.2 0.2",
-          position: "0 0.8 -3.5",
         },
       ];
 
       let currentProduct = null;
       let currentQuantity = 1;
+
+      // Busca URL do localStorage ou usa o padrão com /api
       let BACKEND_URL =
         localStorage.getItem("backend_url") || "http://localhost:3000/api";
+      document.getElementById("backend-url").value = BACKEND_URL;
 
-      // 1. Inicia Câmera
+      // 2. Funções de Câmera
       async function setupCamera() {
         const video = document.getElementById("video-background");
         try {
@@ -343,7 +333,7 @@
         }
       }
 
-      // 2. Renderiza Produtos (CORRIGIDO)
+      // 3. Renderização da Interface
       function renderProducts() {
         const container = document.getElementById("product-list");
         container.innerHTML = "";
@@ -363,7 +353,6 @@
         });
       }
 
-      // 3. Selecionar Produto
       function selectProduct(id) {
         const product = products.find((p) => p.id === id);
         if (!product) return;
@@ -375,7 +364,6 @@
         document.getElementById("ar-product-price").textContent =
           `R$ ${product.price.toFixed(2)}`;
 
-        // Carrega 3D
         const modelParent = document.getElementById("ar-model");
         modelParent.innerHTML = "";
         const model = document.createElement("a-entity");
@@ -390,13 +378,12 @@
         );
         modelParent.appendChild(model);
 
-        // UI
         document.getElementById("menu-screen").classList.add("hide");
         document.getElementById("back-btn").style.display = "block";
         document.getElementById("order-panel").classList.add("show");
       }
 
-      // 4. Enviar Pedido (DTO COMPATÍVEL)
+      // 4. Lógica de Envio (Onde estava o erro)
       async function makeOrder() {
         if (!currentProduct) return;
 
@@ -417,8 +404,16 @@
           observation: "",
         };
 
+        // Garante que a URL não termine com barra para não duplicar //orders
+        const cleanUrl = BACKEND_URL.endsWith("/")
+          ? BACKEND_URL.slice(0, -1)
+          : BACKEND_URL;
+        const targetUrl = `${cleanUrl}/orders`;
+
+        console.log("Enviando pedido para:", targetUrl);
+
         try {
-          const res = await fetch(`${BACKEND_URL}/orders`, {
+          const res = await fetch(targetUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(orderData),
@@ -428,18 +423,24 @@
             alert("✅ Pedido enviado com sucesso!");
             backToMenu();
           } else {
-            const err = await res.json();
-            alert("❌ Erro: " + (err.message || "Falha no servidor"));
+            const err = await res
+              .json()
+              .catch(() => ({ message: "Erro desconhecido" }));
+            alert("❌ Servidor recusou: " + (err.message || res.statusText));
           }
         } catch (e) {
-          alert("❌ Erro de conexão com o backend!");
+          console.error("Erro no fetch:", e);
+          alert(
+            "❌ Erro de conexão! Verifique se o backend está rodando em: " +
+              targetUrl,
+          );
         } finally {
           btn.disabled = false;
           btn.textContent = "📝 Fazer Pedido";
         }
       }
 
-      // Utils
+      // 5. Utilitários
       function updateQty(val) {
         currentQuantity = Math.max(1, currentQuantity + val);
         document.getElementById("quantity").textContent = currentQuantity;
@@ -455,17 +456,18 @@
       function saveUrl() {
         BACKEND_URL = document.getElementById("backend-url").value;
         localStorage.setItem("backend_url", BACKEND_URL);
-        alert("URL salva!");
+        alert("URL salva: " + BACKEND_URL);
       }
 
-      // Init
-      document.getElementById("back-btn").onclick = backToMenu;
-      document.getElementById("confirm-order").onclick = makeOrder;
-
+      // 6. Inicialização
       window.onload = () => {
         const urlParams = new URLSearchParams(window.location.search);
         document.getElementById("table-number").textContent =
           urlParams.get("mesa") || "1";
+
+        document.getElementById("back-btn").onclick = backToMenu;
+        document.getElementById("confirm-order").onclick = makeOrder;
+
         renderProducts();
         setupCamera();
       };

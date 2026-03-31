@@ -242,7 +242,7 @@
         background: rgba(255, 107, 53, 0.9);
       }
 
-      /* NOVO: Painel de Informações Abaixo do Modelo 3D */
+      /* Painel de Informações Abaixo do Modelo 3D */
       #product-details-panel {
         position: fixed;
         bottom: 20px;
@@ -261,6 +261,96 @@
 
       #product-details-panel.show {
         transform: translateY(0);
+      }
+
+      /* Overlay especial para modelo 3D temporário de notificação */
+      .notification-model-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 300;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+        animation: fadeInOverlay 0.3s ease;
+      }
+
+      @keyframes fadeInOverlay {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .notification-model-card {
+        position: relative;
+        width: 90%;
+        max-width: 450px;
+        background: rgba(0, 0, 0, 0.95);
+        border-radius: 32px;
+        padding: 24px;
+        text-align: center;
+        border: 2px solid rgba(255, 107, 53, 0.6);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .notification-model-card h3 {
+        color: #ff6b35;
+        font-size: 24px;
+        margin-bottom: 10px;
+      }
+
+      .notification-model-card p {
+        color: white;
+        margin-bottom: 20px;
+        font-size: 16px;
+      }
+
+      .notification-model-3d {
+        width: 100%;
+        height: 300px;
+        margin: 10px 0;
+        border-radius: 20px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      .countdown-timer {
+        font-size: 16px;
+        font-weight: bold;
+        color: #ff6b35;
+        margin-top: 12px;
+      }
+
+      .close-notification-btn {
+        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        border: none;
+        padding: 12px 24px;
+        border-radius: 40px;
+        color: white;
+        font-weight: bold;
+        margin-top: 16px;
+        cursor: pointer;
+        width: 100%;
       }
 
       .product-details-name {
@@ -321,6 +411,34 @@
         margin-bottom: 16px;
       }
 
+      .order-controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .quantity-control {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 8px 20px;
+        border-radius: 50px;
+      }
+
+      .qty-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        font-weight: bold;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        font-size: 20px;
+      }
+
       .product-details-button {
         width: 100%;
         padding: 16px;
@@ -336,15 +454,6 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
-      }
-
-      .product-details-button:active {
-        transform: scale(0.98);
-      }
-
-      /* Order Panel removido - integrado ao novo painel */
-      #order-panel {
-        display: none;
       }
 
       .camera-status {
@@ -483,68 +592,6 @@
         transform: translateX(-50%) translateY(0);
       }
 
-      .order-notification {
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        left: 20px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 20px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        z-index: 10000;
-        transform: translateX(120%);
-        transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        cursor: pointer;
-      }
-
-      .order-notification.show {
-        transform: translateX(0);
-      }
-
-      .notification-content {
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        color: white;
-      }
-
-      .notification-icon {
-        font-size: 48px;
-        animation: bounce 0.5s ease;
-      }
-
-      .notification-text {
-        flex: 1;
-      }
-
-      .notification-text h4 {
-        font-size: 18px;
-        font-weight: 700;
-        margin-bottom: 4px;
-      }
-
-      .notification-close {
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
-        color: white;
-        font-size: 20px;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        cursor: pointer;
-      }
-
-      @keyframes bounce {
-        0%,
-        100% {
-          transform: scale(1);
-        }
-        50% {
-          transform: scale(1.2);
-        }
-      }
-
       #cart-btn {
         position: fixed;
         bottom: 20px;
@@ -563,10 +610,6 @@
         gap: 10px;
         align-items: center;
         transition: all 0.3s;
-      }
-
-      #cart-btn:active {
-        transform: scale(0.98);
       }
 
       #cart-screen {
@@ -601,14 +644,6 @@
         align-items: center;
       }
 
-      .cart-header h2 {
-        font-size: 24px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
       .cart-items {
         flex: 1;
         overflow-y: auto;
@@ -621,58 +656,6 @@
         align-items: center;
         padding: 20px 0;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        animation: slideIn 0.3s ease;
-      }
-
-      @keyframes slideIn {
-        from {
-          opacity: 0;
-          transform: translateX(-20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-
-      .cart-item-info h4 {
-        color: white;
-        font-size: 18px;
-        font-weight: 500;
-        margin-bottom: 5px;
-      }
-
-      .cart-item-info p {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 14px;
-      }
-
-      .cart-item-actions {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-
-      .cart-item-quantity {
-        color: white;
-        font-size: 18px;
-        font-weight: 600;
-      }
-
-      .remove-item-btn {
-        background: rgba(255, 82, 82, 0.2);
-        border: 1px solid rgba(255, 82, 82, 0.3);
-        color: #ff5252;
-        padding: 8px 16px;
-        border-radius: 30px;
-        cursor: pointer;
-        font-size: 13px;
-        transition: all 0.2s;
-      }
-
-      .remove-item-btn:active {
-        transform: scale(0.95);
-        background: rgba(255, 82, 82, 0.4);
       }
 
       .cart-footer {
@@ -699,11 +682,6 @@
         font-size: 18px;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s;
-      }
-
-      .send-order-btn:active {
-        transform: scale(0.98);
       }
 
       .close-cart {
@@ -711,49 +689,7 @@
         border: none;
         color: white;
         font-size: 28px;
-        font-weight: bold;
         cursor: pointer;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        transition: all 0.2s;
-      }
-
-      .close-cart:active {
-        background: rgba(255, 255, 255, 0.2);
-        transform: rotate(90deg);
-      }
-
-      @media (max-width: 768px) {
-        .camera-status {
-          bottom: 16px;
-          left: 16px;
-          font-size: 10px;
-          padding: 6px 12px;
-        }
-
-        #cart-btn {
-          bottom: 16px;
-          right: 16px;
-          padding: 12px 20px;
-          font-size: 13px;
-        }
-
-        .product-details-name {
-          font-size: 20px;
-        }
-
-        .nutrition-item {
-          padding: 6px 12px;
-        }
-
-        .nutrition-item span {
-          font-size: 12px;
-        }
-
-        .product-details-price {
-          font-size: 24px;
-        }
       }
     </style>
   </head>
@@ -807,7 +743,6 @@
     <div id="connection-status" class="connecting">
       <i class="fas fa-circle"></i> <span>Conectando...</span>
     </div>
-
     <button id="cart-btn" onclick="openCart()">
       <i class="fas fa-shopping-bag"></i> <span id="cart-count">0</span>
     </button>
@@ -832,7 +767,6 @@
       <i class="fas fa-arrow-left"></i> Voltar
     </button>
 
-    <!-- NOVO: Painel de Informações do Produto Abaixo do Modelo 3D -->
     <div id="product-details-panel">
       <div class="product-details-name" id="product-details-name">
         <i class="fas fa-cube"></i> ---
@@ -842,88 +776,33 @@
       </div>
       <div class="product-details-nutrition" id="product-details-nutrition">
         <div class="nutrition-item">
-          <i class="fas fa-fire"></i>
-          <span id="nutrition-calories">0</span>
-          <small>kcal</small>
+          <i class="fas fa-fire"></i><span id="nutrition-calories">0</span
+          ><small>kcal</small>
         </div>
         <div class="nutrition-item">
-          <i class="fas fa-dumbbell"></i>
-          <span id="nutrition-protein">0</span>
-          <small>g</small>
+          <i class="fas fa-dumbbell"></i><span id="nutrition-protein">0</span
+          ><small>g</small>
         </div>
         <div class="nutrition-item">
-          <i class="fas fa-bread-slice"></i>
-          <span id="nutrition-carbs">0</span>
-          <small>g</small>
+          <i class="fas fa-bread-slice"></i><span id="nutrition-carbs">0</span
+          ><small>g</small>
         </div>
         <div class="nutrition-item">
-          <i class="fas fa-oil-can"></i>
-          <span id="nutrition-fat">0</span>
-          <small>g</small>
+          <i class="fas fa-oil-can"></i><span id="nutrition-fat">0</span
+          ><small>g</small>
         </div>
       </div>
       <div class="product-details-price" id="product-details-price">
         R$ 0,00
       </div>
-      <div
-        class="order-controls"
-        style="
-          display: flex;
-          gap: 15px;
-          align-items: center;
-          justify-content: center;
-        "
-      >
-        <div
-          class="quantity-control"
-          style="
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 8px 20px;
-            border-radius: 50px;
-          "
-        >
-          <button
-            class="qty-btn"
-            onclick="updateQty(-1)"
-            style="
-              width: 40px;
-              height: 40px;
-              border-radius: 50%;
-              border: none;
-              font-weight: bold;
-              cursor: pointer;
-              background: rgba(255, 255, 255, 0.2);
-              color: white;
-              font-size: 20px;
-            "
-          >
-            -
-          </button>
-          <span
+      <div class="order-controls">
+        <div class="quantity-control">
+          <button class="qty-btn" onclick="updateQty(-1)">-</button
+          ><span
             id="quantity"
             style="font-weight: bold; font-size: 18px; color: white"
             >1</span
-          >
-          <button
-            class="qty-btn"
-            onclick="updateQty(1)"
-            style="
-              width: 40px;
-              height: 40px;
-              border-radius: 50%;
-              border: none;
-              font-weight: bold;
-              cursor: pointer;
-              background: rgba(255, 255, 255, 0.2);
-              color: white;
-              font-size: 20px;
-            "
-          >
-            +
-          </button>
+          ><button class="qty-btn" onclick="updateQty(1)">+</button>
         </div>
         <button id="confirm-order" class="product-details-button">
           <i class="fas fa-cart-plus"></i> Adicionar ao Pedido
@@ -949,7 +828,7 @@
           description:
             "Carne Angus 180g, queijo cheddar, bacon crocante, alface, tomate e pão brioche",
           price: 32.9,
-          modelFile: "hamburguer.glb",
+          modelFile: "hamburguer.glb", // Mantém o modelo original
           image:
             "https://viagem.cnnbrasil.com.br/wp-content/uploads/sites/5/2022/05/origem-do-hambuguer-cnn4.jpg?w=1200&h=900&crop=1",
           scale: "0.1 0.1 0.1",
@@ -958,14 +837,6 @@
           protein: 32,
           carbs: 45,
           fat: 28,
-          ingredients: [
-            "Carne Angus 180g",
-            "Queijo Cheddar",
-            "Bacon Crocante",
-            "Alface",
-            "Tomate",
-            "Pão Brioche",
-          ],
         },
         {
           id: 2,
@@ -973,7 +844,7 @@
           description:
             "Massa fininha, molho de tomate, mussarela de búfala, manjericão fresco e azeite",
           price: 45.9,
-          modelFile: "pizza.glb",
+          modelFile: "pizza.glb", // Mantém o modelo original
           image:
             "https://images.aws.nestle.recipes/original/1821a30a8a8acec9f74a1372be582610_sem_t%C3%ADtulo_(18).jpg",
           scale: "10 10 10",
@@ -982,20 +853,13 @@
           protein: 32,
           carbs: 95,
           fat: 28,
-          ingredients: [
-            "Massa Fininha",
-            "Molho de Tomate",
-            "Mussarela de Búfala",
-            "Manjericão",
-            "Azeite",
-          ],
         },
         {
           id: 3,
           name: "Refrigerante",
           description: "Coca-Cola 350ml - Bem gelada",
           price: 7.5,
-          modelFile: "coca.glb",
+          modelFile: "coca.glb", // Mantém o modelo original
           image:
             "https://s3.amazonaws.com/lepok.w/produtos/produtos/26244.webp",
           scale: "0.25 0.25 0.25",
@@ -1004,7 +868,6 @@
           protein: 0,
           carbs: 39,
           fat: 0,
-          ingredients: ["Água Gaseificada", "Açúcar", "Extrato de Cola"],
         },
       ];
 
@@ -1013,6 +876,7 @@
         currentQuantity = 1,
         BACKEND_URL = "https://backend-nestjs-ra.onrender.com/",
         socket = null;
+      let activeNotificationTimeout = null;
 
       const savedUrl = localStorage.getItem("backend_url");
       if (savedUrl) {
@@ -1034,22 +898,103 @@
         setTimeout(() => toast.classList.remove("show"), 3000);
       }
 
-      function showOrderNotification(productName) {
-        let notification = document.getElementById("order-notification");
-        if (!notification) {
-          notification = document.createElement("div");
-          notification.id = "order-notification";
-          notification.className = "order-notification";
-          notification.innerHTML = `<div class="notification-content"><div class="notification-icon">🎉</div><div class="notification-text"><h4>Pedido Pronto!</h4><p>Seu pedido está pronto</p></div><button class="notification-close">×</button></div>`;
-          document.body.appendChild(notification);
-          notification.querySelector(".notification-close").onclick = () =>
-            notification.classList.remove("show");
-        }
-        notification.querySelector(".notification-text").innerHTML =
-          `<h4>🍕 Pedido Pronto!</h4><p>Seu ${productName} está pronto</p>`;
-        notification.classList.add("show");
-        setTimeout(() => notification.classList.remove("show"), 8000);
+      // FUNÇÃO PRINCIPAL: mostra APENAS o modelo.glb quando o pedido fica pronto
+      function showTemporary3DModel(productName) {
+        // Remove overlay existente se houver
+        const existingOverlay = document.querySelector(
+          ".notification-model-overlay",
+        );
+        if (existingOverlay) existingOverlay.remove();
+        if (activeNotificationTimeout) clearTimeout(activeNotificationTimeout);
+
+        // Cria container flutuante para exibir o modelo 3D temporariamente
+        const overlay = document.createElement("div");
+        overlay.className = "notification-model-overlay";
+        overlay.innerHTML = `
+          <div class="notification-model-card">
+            <h3><i class="fas fa-check-circle"></i> Pedido Pronto! 🎉</h3>
+            <p>Seu <strong>${productName}</strong> está pronto para retirada</p>
+            <div id="temp-model-3d" style="width:100%; height:300px; background:#111; border-radius:20px; overflow:hidden;"></div>
+            <div class="countdown-timer" id="temp-countdown">⏱️ Desaparece em 5 segundos</div>
+            <button class="close-notification-btn" id="close-temp-model"><i class="fas fa-times"></i> Fechar agora</button>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // Criar cena A-Frame temporária para o modelo 3D - USANDO APENAS modelo.glb
+        const tempContainer = overlay.querySelector("#temp-model-3d");
+        const tempScene = document.createElement("a-scene");
+        tempScene.setAttribute("embedded", "");
+        tempScene.setAttribute("vr-mode-ui", "enabled: false");
+        tempScene.style.width = "100%";
+        tempScene.style.height = "100%";
+        tempScene.style.background = "transparent";
+
+        const ambient = document.createElement("a-light");
+        ambient.setAttribute("type", "ambient");
+        ambient.setAttribute("intensity", "0.8");
+        tempScene.appendChild(ambient);
+        const directional = document.createElement("a-light");
+        directional.setAttribute("type", "directional");
+        directional.setAttribute("intensity", "0.6");
+        directional.setAttribute("position", "1 2 1");
+        tempScene.appendChild(directional);
+
+        const modelEntity = document.createElement("a-entity");
+        // 🔥 AQUI: usa APENAS o modelo.glb para notificações 🔥
+        modelEntity.setAttribute("gltf-model", "url(assets/models/modelo.glb)");
+        modelEntity.setAttribute("scale", "0.05 0.05 0.05"); // Ajuste conforme seu modelo
+        modelEntity.setAttribute("position", "0 0 0");
+        modelEntity.setAttribute("rotation", "0 0 0");
+        modelEntity.setAttribute("animation", {
+          property: "rotation",
+          to: "0 360 0",
+          dur: 10000,
+          easing: "linear",
+          loop: true,
+        });
+        tempScene.appendChild(modelEntity);
+        const camera = document.createElement("a-camera");
+        camera.setAttribute("position", "0 1.6 3");
+        camera.setAttribute("look-controls", "enabled: false");
+        tempScene.appendChild(camera);
+
+        tempContainer.appendChild(tempScene);
+
+        // Contador regressivo de 5 segundos
+        let secondsLeft = 5;
+        const countdownEl = overlay.querySelector("#temp-countdown");
+        const interval = setInterval(() => {
+          secondsLeft--;
+          if (secondsLeft >= 0) {
+            countdownEl.innerHTML = `⏱️ Desaparece em ${secondsLeft} segundo${secondsLeft !== 1 ? "s" : ""}`;
+          }
+          if (secondsLeft <= 0) {
+            clearInterval(interval);
+            if (overlay && overlay.parentNode) overlay.remove();
+          }
+        }, 1000);
+
+        activeNotificationTimeout = setTimeout(() => {
+          clearInterval(interval);
+          if (overlay && overlay.parentNode) overlay.remove();
+          activeNotificationTimeout = null;
+        }, 5000);
+
+        overlay.querySelector("#close-temp-model").onclick = () => {
+          clearInterval(interval);
+          if (activeNotificationTimeout)
+            clearTimeout(activeNotificationTimeout);
+          if (overlay && overlay.parentNode) overlay.remove();
+          activeNotificationTimeout = null;
+        };
+
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      }
+
+      function showOrderNotification(productName) {
+        // Chama a função que mostra APENAS o modelo.glb
+        showTemporary3DModel(productName);
       }
 
       function updateConnectionStatus(status, message) {
@@ -1082,9 +1027,11 @@
           socket.on("order-confirmed", () =>
             showToast("✅ Pedido recebido pela cozinha!", "#4CAF50"),
           );
-          socket.on("order-ready", (data) =>
-            showOrderNotification(data.productName),
-          );
+          // 🔥 EVENTO PRINCIPAL: quando o pedido fica pronto (order-ready), mostra o modelo.glb por 5 segundos 🔥
+          socket.on("order-ready", (data) => {
+            console.log("Pedido pronto:", data);
+            showOrderNotification(data.productName);
+          });
           socket.on("order-updated", (data) => {
             if (data.status === "preparing")
               showToast("👨‍🍳 Seu pedido está sendo preparado!", "#FF9800");
@@ -1120,7 +1067,12 @@
         });
       }
 
-      function updateProductDetails(product) {
+      window.selectProduct = function (id) {
+        const product = products.find((p) => p.id === id);
+        if (!product) return;
+        currentProduct = product;
+        currentQuantity = 1;
+        document.getElementById("quantity").textContent = "1";
         document.getElementById("product-details-name").innerHTML =
           `<i class="fas fa-cube"></i> ${product.name}`;
         document.getElementById("product-details-description").innerHTML =
@@ -1134,21 +1086,10 @@
         document.getElementById("nutrition-fat").textContent = product.fat || 0;
         document.getElementById("product-details-price").textContent =
           `R$ ${product.price.toFixed(2)}`;
-      }
-
-      window.selectProduct = function (id) {
-        const product = products.find((p) => p.id === id);
-        if (!product) return;
-        currentProduct = product;
-        currentQuantity = 1;
-        document.getElementById("quantity").textContent = "1";
-
-        // Atualiza o painel de detalhes
-        updateProductDetails(product);
-
         const modelContainer = document.getElementById("ar-model");
         modelContainer.innerHTML = "";
         const model = document.createElement("a-entity");
+        // 🔥 AQUI: usa o modelo específico de cada produto (hamburguer.glb, pizza.glb, coca.glb) 🔥
         model.setAttribute(
           "gltf-model",
           `url(assets/models/${product.modelFile})`,
@@ -1171,9 +1112,6 @@
           model.setAttribute("animation", anim);
         });
         modelContainer.appendChild(model);
-        document
-          .getElementById("ar-model-container")
-          .setAttribute("position", "0 0.5 -4");
         document.getElementById("menu-screen").classList.add("hide");
         document.getElementById("back-btn").style.display = "flex";
         document.getElementById("product-details-panel").classList.add("show");
@@ -1198,14 +1136,12 @@
         );
         if (navigator.vibrate) navigator.vibrate(50);
       };
-
       function updateCartButton() {
         const total = cart.reduce((s, i) => s + i.quantity, 0);
         document.getElementById("cart-count").textContent = total;
         document.getElementById("cart-btn").style.display =
           total > 0 ? "flex" : "none";
       }
-
       window.openCart = function () {
         renderCartItems();
         document.getElementById("cart-screen").style.display = "flex";
@@ -1213,7 +1149,6 @@
       window.closeCart = function () {
         document.getElementById("cart-screen").style.display = "none";
       };
-
       function renderCartItems() {
         const container = document.getElementById("cart-items-container");
         container.innerHTML = "";
@@ -1223,7 +1158,7 @@
           total += itemTotal;
           const div = document.createElement("div");
           div.className = "cart-item";
-          div.innerHTML = `<div class="cart-item-info"><h4>${item.name}</h4><p>R$ ${item.price.toFixed(2)} un.</p></div><div class="cart-item-actions"><span class="cart-item-quantity">${item.quantity}x</span><button class="remove-item-btn" onclick="removeFromCart(${idx})"><i class="fas fa-trash"></i> Remover</button></div>`;
+          div.innerHTML = `<div class="cart-item-info"><h4>${item.name}</h4><p>R$ ${item.price.toFixed(2)} un.</p></div><div class="cart-item-actions"><span class="cart-item-quantity">${item.quantity}x</span><button class="remove-item-btn" style="background:rgba(255,82,82,0.2); border:none; color:#ff5252; padding:8px 16px; border-radius:30px; cursor:pointer;" onclick="removeFromCart(${idx})"><i class="fas fa-trash"></i> Remover</button></div>`;
           container.appendChild(div);
         });
         document.getElementById("cart-total-value").textContent =
@@ -1232,28 +1167,22 @@
           container.innerHTML =
             "<p style='text-align:center; color:rgba(255,255,255,0.5); padding:40px;'><i class='fas fa-shopping-bag'></i> Seu carrinho está vazio.</p>";
       }
-
       window.removeFromCart = function (idx) {
         cart.splice(idx, 1);
         renderCartItems();
         updateCartButton();
         if (cart.length === 0) closeCart();
-        if (navigator.vibrate) navigator.vibrate(30);
       };
-
       window.sendFullOrder = async function () {
         if (cart.length === 0) return;
-
         const btn = document.querySelector("#cart-screen .send-order-btn");
         const original = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-
         const tableNum =
           parseInt(new URLSearchParams(window.location.search).get("mesa")) ||
           1;
         const cleanUrl = BACKEND_URL.replace(/\/$/, "");
-
         try {
           const orderItems = cart.map((item) => ({
             tableNumber: tableNum,
@@ -1264,13 +1193,11 @@
             status: "pending",
             observation: "",
           }));
-
           const response = await fetch(`${cleanUrl}/api/orders/bulk`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(orderItems),
           });
-
           if (response.ok) {
             cart = [];
             updateCartButton();
@@ -1282,19 +1209,17 @@
             showToast("⚠️ Erro ao enviar pedido", "#F44336");
           }
         } catch (e) {
-          showToast("❌ Erro de conexão! Verifique sua internet.", "#F44336");
+          showToast("❌ Erro de conexão!", "#F44336");
         } finally {
           btn.disabled = false;
           btn.innerHTML = original;
         }
       };
-
       window.updateQty = function (val) {
         currentQuantity = Math.max(1, currentQuantity + val);
         document.getElementById("quantity").textContent = currentQuantity;
         if (navigator.vibrate) navigator.vibrate(20);
       };
-
       window.backToMenu = function () {
         document.getElementById("menu-screen").classList.remove("hide");
         document.getElementById("back-btn").style.display = "none";
@@ -1303,17 +1228,13 @@
           .classList.remove("show");
         document.getElementById("ar-model").innerHTML = "";
       };
-
       window.saveUrl = function () {
-        let newUrl = document.getElementById("backend-url").value;
-        if (!newUrl || newUrl.trim() === "") {
-          showToast("⚠️ Por favor, insira uma URL válida!", "#F44336");
+        let newUrl = document.getElementById("backend-url").value.trim();
+        if (!newUrl) {
+          showToast("⚠️ Insira uma URL válida!", "#F44336");
           return;
         }
-        newUrl = newUrl.trim();
-        if (!newUrl.startsWith("http://") && !newUrl.startsWith("https://")) {
-          newUrl = "https://" + newUrl;
-        }
+        if (!newUrl.startsWith("http")) newUrl = "https://" + newUrl;
         newUrl = newUrl.replace(/\/$/, "");
         BACKEND_URL = newUrl;
         localStorage.setItem("backend_url", BACKEND_URL);
@@ -1324,7 +1245,6 @@
           1;
         setTimeout(() => connectWebSocket(tableNum), 500);
       };
-
       window.onload = () => {
         const tableNum =
           parseInt(new URLSearchParams(window.location.search).get("mesa")) ||

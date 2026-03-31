@@ -28,8 +28,10 @@
     <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <!-- Biblioteca para animações de modelos GLB/GLTF -->
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <!-- Biblioteca para animações e modelos FBX -->
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    <!-- Carregador FBX para Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
 
@@ -692,6 +694,51 @@
         cursor: pointer;
       }
     </style>
+
+    <!-- Componente para carregar FBX no A-Frame -->
+    <script>
+      AFRAME.registerComponent('fbx-model', {
+        schema: { type: 'string' },
+        
+        init: function () {
+          this.model = null;
+          this.loader = new THREE.FBXLoader();
+        },
+        
+        update: function () {
+          const self = this;
+          const el = this.el;
+          const src = this.data;
+          
+          if (!src) return;
+          
+          this.loader.load(src, function (model) {
+            if (self.model) el.removeObject3D('mesh');
+            self.model = model;
+            el.setObject3D('mesh', model);
+            
+            // Tocar animação se existir
+            if (model.animations && model.animations.length > 0) {
+              console.log('🎬 Animações FBX encontradas:', model.animations.length);
+              const mixer = new THREE.AnimationMixer(model);
+              const action = mixer.clipAction(model.animations[0]);
+              action.play();
+              
+              // Atualizar animação a cada frame
+              function animate() {
+                requestAnimationFrame(animate);
+                mixer.update(1/60);
+              }
+              animate();
+            }
+            
+            el.emit('model-loaded', { format: 'fbx', model: model });
+          }, undefined, function (error) {
+            console.error('Erro ao carregar FBX:', error);
+          });
+        }
+      });
+    </script>
   </head>
   <body>
     <video id="video-background" autoplay playsinline muted></video>
@@ -829,6 +876,7 @@
             "Carne Angus 180g, queijo cheddar, bacon crocante, alface, tomate e pão brioche",
           price: 32.9,
           modelFile: "hamburguer.glb",
+          modelType: "glb",
           image:
             "https://viagem.cnnbrasil.com.br/wp-content/uploads/sites/5/2022/05/origem-do-hambuguer-cnn4.jpg?w=1200&h=900&crop=1",
           scale: "0.1 0.1 0.1",
@@ -845,6 +893,7 @@
             "Massa fininha, molho de tomate, mussarela de búfala, manjericão fresco e azeite",
           price: 45.9,
           modelFile: "pizza.glb",
+          modelType: "glb",
           image:
             "https://images.aws.nestle.recipes/original/1821a30a8a8acec9f74a1372be582610_sem_t%C3%ADtulo_(18).jpg",
           scale: "10 10 10",
@@ -860,6 +909,7 @@
           description: "Coca-Cola 350ml - Bem gelada",
           price: 7.5,
           modelFile: "coca.glb",
+          modelType: "glb",
           image:
             "https://s3.amazonaws.com/lepok.w/produtos/produtos/26244.webp",
           scale: "0.25 0.25 0.25",
@@ -898,7 +948,7 @@
         setTimeout(() => toast.classList.remove("show"), 3000);
       }
 
-      // FUNÇÃO PRINCIPAL: mostra APENAS o modelo.glb quando o pedido fica pronto
+      // FUNÇÃO PRINCIPAL: mostra APENAS o modelo FBX quando o pedido fica pronto
       function showTemporary3DModel(productName) {
         // Remove overlay existente se houver
         const existingOverlay = document.querySelector(
@@ -921,7 +971,7 @@
         `;
         document.body.appendChild(overlay);
 
-        // Criar cena A-Frame temporária para o modelo 3D - USANDO APENAS modelo.glb
+        // Criar cena A-Frame temporária para o modelo 3D - USANDO FBX
         const tempContainer = overlay.querySelector("#temp-model-3d");
         const tempScene = document.createElement("a-scene");
         tempScene.setAttribute("embedded", "");
@@ -948,37 +998,20 @@
         tempScene.appendChild(backLight);
 
         const modelEntity = document.createElement("a-entity");
-        // 🔥 AQUI: usa APENAS o modelo.glb para notificações 🔥
-        modelEntity.setAttribute("gltf-model", "url(assets/models/modelo.glb)");
-        // 🔥 ESCALA AJUSTADA PARA 2 (tamanho ideal) 🔥
-        modelEntity.setAttribute("scale", "2 2 2");
+        // 🔥 AQUI: usa o modelo FBX para notificações 🔥
+        modelEntity.setAttribute("fbx-model", "url(assets/models/modelo.fbx)");
+        // 🔥 ESCALA AJUSTADA PARA 0.01 (FBX geralmente precisa de escala menor) 🔥
+        modelEntity.setAttribute("scale", "0.01 0.01 0.01");
         // Posiciona o modelo no centro da vista
         modelEntity.setAttribute("position", "0 0 0");
         modelEntity.setAttribute("rotation", "0 0 0");
         
-        // 🔥 ATIVA A ANIMAÇÃO DO MODELO MIXAMO 🔥
-        // Opção 1: Tenta reproduzir todas as animações em loop
-        modelEntity.setAttribute("animation-mixer", "loop: repeat");
-        
-        // Opção 2: Se tiver múltiplas animações, especifica qual reproduzir
-        // modelEntity.setAttribute("animation-mixer", "clip: *; loop: repeat");
-        
-        // Opção 3: Para uma animação específica (se souber o nome)
-        // modelEntity.setAttribute("animation-mixer", "clip: Animation; loop: repeat");
-        
         tempScene.appendChild(modelEntity);
         
-        // Log para debug - mostra quantas animações o modelo tem
-        modelEntity.addEventListener("model-loaded", () => {
-          const mesh = modelEntity.getObject3D("mesh");
-          if (mesh && mesh.animations) {
-            console.log("🎬 Animações encontradas:", mesh.animations.length);
-            mesh.animations.forEach((anim, i) => {
-              console.log(`  - Animação ${i}: ${anim.name}`);
-            });
-          } else {
-            console.log("⚠️ Nenhuma animação encontrada no modelo");
-          }
+        // Log para debug
+        modelEntity.addEventListener("model-loaded", (e) => {
+          console.log("🎬 Modelo FBX carregado com sucesso!");
+          console.log("Formato:", e.detail.format);
         });
         
         // Câmera posicionada para melhor visualização
@@ -1115,6 +1148,8 @@
         const modelContainer = document.getElementById("ar-model");
         modelContainer.innerHTML = "";
         const model = document.createElement("a-entity");
+        
+        // Carrega o modelo específico de cada produto (GLB)
         model.setAttribute(
           "gltf-model",
           `url(assets/models/${product.modelFile})`,

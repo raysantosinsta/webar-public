@@ -242,7 +242,6 @@
         background: rgba(255, 107, 53, 0.9);
       }
 
-      /* Painel de Informações Abaixo do Modelo 3D */
       #product-details-panel {
         position: fixed;
         bottom: 20px;
@@ -263,7 +262,6 @@
         transform: translateY(0);
       }
 
-      /* Overlay especial para modelo 3D temporário de notificação */
       .notification-model-overlay {
         position: fixed;
         top: 0;
@@ -292,7 +290,7 @@
       .notification-model-card {
         position: relative;
         width: 90%;
-        max-width: 450px;
+        max-width: 500px;
         background: rgba(0, 0, 0, 0.95);
         border-radius: 32px;
         padding: 24px;
@@ -327,7 +325,7 @@
 
       .notification-model-3d {
         width: 100%;
-        height: 300px;
+        height: 350px;
         margin: 10px 0;
         border-radius: 20px;
         overflow: hidden;
@@ -828,7 +826,7 @@
           description:
             "Carne Angus 180g, queijo cheddar, bacon crocante, alface, tomate e pão brioche",
           price: 32.9,
-          modelFile: "hamburguer.glb", // Mantém o modelo original
+          modelFile: "hamburguer.glb",
           image:
             "https://viagem.cnnbrasil.com.br/wp-content/uploads/sites/5/2022/05/origem-do-hambuguer-cnn4.jpg?w=1200&h=900&crop=1",
           scale: "0.1 0.1 0.1",
@@ -844,7 +842,7 @@
           description:
             "Massa fininha, molho de tomate, mussarela de búfala, manjericão fresco e azeite",
           price: 45.9,
-          modelFile: "pizza.glb", // Mantém o modelo original
+          modelFile: "pizza.glb",
           image:
             "https://images.aws.nestle.recipes/original/1821a30a8a8acec9f74a1372be582610_sem_t%C3%ADtulo_(18).jpg",
           scale: "10 10 10",
@@ -859,7 +857,7 @@
           name: "Refrigerante",
           description: "Coca-Cola 350ml - Bem gelada",
           price: 7.5,
-          modelFile: "coca.glb", // Mantém o modelo original
+          modelFile: "coca.glb",
           image:
             "https://s3.amazonaws.com/lepok.w/produtos/produtos/26244.webp",
           scale: "0.25 0.25 0.25",
@@ -914,7 +912,7 @@
           <div class="notification-model-card">
             <h3><i class="fas fa-check-circle"></i> Pedido Pronto! 🎉</h3>
             <p>Seu <strong>${productName}</strong> está pronto para retirada</p>
-            <div id="temp-model-3d" style="width:100%; height:300px; background:#111; border-radius:20px; overflow:hidden;"></div>
+            <div id="temp-model-3d" style="width:100%; height:350px; background:#111; border-radius:20px; overflow:hidden;"></div>
             <div class="countdown-timer" id="temp-countdown">⏱️ Desaparece em 5 segundos</div>
             <button class="close-notification-btn" id="close-temp-model"><i class="fas fa-times"></i> Fechar agora</button>
           </div>
@@ -932,34 +930,48 @@
 
         const ambient = document.createElement("a-light");
         ambient.setAttribute("type", "ambient");
-        ambient.setAttribute("intensity", "0.8");
+        ambient.setAttribute("intensity", "1.2");
         tempScene.appendChild(ambient);
+        
         const directional = document.createElement("a-light");
         directional.setAttribute("type", "directional");
-        directional.setAttribute("intensity", "0.6");
-        directional.setAttribute("position", "1 2 1");
+        directional.setAttribute("intensity", "0.8");
+        directional.setAttribute("position", "2 3 2");
         tempScene.appendChild(directional);
+        
+        const backLight = document.createElement("a-light");
+        backLight.setAttribute("type", "directional");
+        backLight.setAttribute("intensity", "0.5");
+        backLight.setAttribute("position", "-1 1 -2");
+        tempScene.appendChild(backLight);
 
         const modelEntity = document.createElement("a-entity");
         // 🔥 AQUI: usa APENAS o modelo.glb para notificações 🔥
         modelEntity.setAttribute("gltf-model", "url(assets/models/modelo.glb)");
-        modelEntity.setAttribute("scale", "10 10 10"); // Ajuste conforme seu modelo
+        // 🔥 ESCALA MUITO MAIOR - COMEÇA COM 50x 🔥
+        modelEntity.setAttribute("scale", "50 50 50");
+        // Posiciona o modelo no centro da vista
         modelEntity.setAttribute("position", "0 0 0");
         modelEntity.setAttribute("rotation", "0 0 0");
         modelEntity.setAttribute("animation", {
           property: "rotation",
           to: "0 360 0",
-          dur: 10000,
+          dur: 12000,
           easing: "linear",
           loop: true,
         });
         tempScene.appendChild(modelEntity);
+        
+        // 🔥 CÂMERA MAIS PRÓXIMA DO MODELO 🔥
         const camera = document.createElement("a-camera");
-        camera.setAttribute("position", "0 1.6 3");
+        camera.setAttribute("position", "0 1.5 2.5"); // Mais perto (2.5 ao invés de 3)
         camera.setAttribute("look-controls", "enabled: false");
         tempScene.appendChild(camera);
 
         tempContainer.appendChild(tempScene);
+
+        // Log para debug
+        console.log("🎬 Modelo 3D carregado com escala 50x");
 
         // Contador regressivo de 5 segundos
         let secondsLeft = 5;
@@ -993,7 +1005,6 @@
       }
 
       function showOrderNotification(productName) {
-        // Chama a função que mostra APENAS o modelo.glb
         showTemporary3DModel(productName);
       }
 
@@ -1027,9 +1038,8 @@
           socket.on("order-confirmed", () =>
             showToast("✅ Pedido recebido pela cozinha!", "#4CAF50"),
           );
-          // 🔥 EVENTO PRINCIPAL: quando o pedido fica pronto (order-ready), mostra o modelo.glb por 5 segundos 🔥
           socket.on("order-ready", (data) => {
-            console.log("Pedido pronto:", data);
+            console.log("🎉 Pedido pronto:", data);
             showOrderNotification(data.productName);
           });
           socket.on("order-updated", (data) => {
@@ -1089,7 +1099,6 @@
         const modelContainer = document.getElementById("ar-model");
         modelContainer.innerHTML = "";
         const model = document.createElement("a-entity");
-        // 🔥 AQUI: usa o modelo específico de cada produto (hamburguer.glb, pizza.glb, coca.glb) 🔥
         model.setAttribute(
           "gltf-model",
           `url(assets/models/${product.modelFile})`,
@@ -1136,19 +1145,23 @@
         );
         if (navigator.vibrate) navigator.vibrate(50);
       };
+      
       function updateCartButton() {
         const total = cart.reduce((s, i) => s + i.quantity, 0);
         document.getElementById("cart-count").textContent = total;
         document.getElementById("cart-btn").style.display =
           total > 0 ? "flex" : "none";
       }
+      
       window.openCart = function () {
         renderCartItems();
         document.getElementById("cart-screen").style.display = "flex";
       };
+      
       window.closeCart = function () {
         document.getElementById("cart-screen").style.display = "none";
       };
+      
       function renderCartItems() {
         const container = document.getElementById("cart-items-container");
         container.innerHTML = "";
@@ -1167,12 +1180,14 @@
           container.innerHTML =
             "<p style='text-align:center; color:rgba(255,255,255,0.5); padding:40px;'><i class='fas fa-shopping-bag'></i> Seu carrinho está vazio.</p>";
       }
+      
       window.removeFromCart = function (idx) {
         cart.splice(idx, 1);
         renderCartItems();
         updateCartButton();
         if (cart.length === 0) closeCart();
       };
+      
       window.sendFullOrder = async function () {
         if (cart.length === 0) return;
         const btn = document.querySelector("#cart-screen .send-order-btn");
@@ -1215,11 +1230,13 @@
           btn.innerHTML = original;
         }
       };
+      
       window.updateQty = function (val) {
         currentQuantity = Math.max(1, currentQuantity + val);
         document.getElementById("quantity").textContent = currentQuantity;
         if (navigator.vibrate) navigator.vibrate(20);
       };
+      
       window.backToMenu = function () {
         document.getElementById("menu-screen").classList.remove("hide");
         document.getElementById("back-btn").style.display = "none";
@@ -1228,6 +1245,7 @@
           .classList.remove("show");
         document.getElementById("ar-model").innerHTML = "";
       };
+      
       window.saveUrl = function () {
         let newUrl = document.getElementById("backend-url").value.trim();
         if (!newUrl) {
@@ -1245,6 +1263,7 @@
           1;
         setTimeout(() => connectWebSocket(tableNum), 500);
       };
+      
       window.onload = () => {
         const tableNum =
           parseInt(new URLSearchParams(window.location.search).get("mesa")) ||
@@ -1254,6 +1273,12 @@
         renderProducts();
         setupCamera();
         setTimeout(() => connectWebSocket(tableNum), 1000);
+        
+        // 🔥 TESTE AUTOMÁTICO (remove depois se não quiser) 🔥
+        setTimeout(() => {
+          console.log("🔔 TESTE: Simulando pedido pronto!");
+          showOrderNotification("Hambúrguer Artesanal");
+        }, 3000);
       };
     </script>
   </body>

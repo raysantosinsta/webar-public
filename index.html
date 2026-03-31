@@ -28,6 +28,8 @@
     <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <!-- Biblioteca para animações de modelos GLB/GLTF -->
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
 
@@ -953,9 +955,31 @@
         // Posiciona o modelo no centro da vista
         modelEntity.setAttribute("position", "0 0 0");
         modelEntity.setAttribute("rotation", "0 0 0");
-        modelEntity.setAttribute("animation-mixer", "");
-        // 🔥 ANIMAÇÃO REMOVIDA - seu modelo já tem animação própria 🔥
+        
+        // 🔥 ATIVA A ANIMAÇÃO DO MODELO MIXAMO 🔥
+        // Opção 1: Tenta reproduzir todas as animações em loop
+        modelEntity.setAttribute("animation-mixer", "loop: repeat");
+        
+        // Opção 2: Se tiver múltiplas animações, especifica qual reproduzir
+        // modelEntity.setAttribute("animation-mixer", "clip: *; loop: repeat");
+        
+        // Opção 3: Para uma animação específica (se souber o nome)
+        // modelEntity.setAttribute("animation-mixer", "clip: Animation; loop: repeat");
+        
         tempScene.appendChild(modelEntity);
+        
+        // Log para debug - mostra quantas animações o modelo tem
+        modelEntity.addEventListener("model-loaded", () => {
+          const mesh = modelEntity.getObject3D("mesh");
+          if (mesh && mesh.animations) {
+            console.log("🎬 Animações encontradas:", mesh.animations.length);
+            mesh.animations.forEach((anim, i) => {
+              console.log(`  - Animação ${i}: ${anim.name}`);
+            });
+          } else {
+            console.log("⚠️ Nenhuma animação encontrada no modelo");
+          }
+        });
         
         // Câmera posicionada para melhor visualização
         const camera = document.createElement("a-camera");
@@ -1030,7 +1054,6 @@
           socket.on("order-confirmed", () =>
             showToast("✅ Pedido recebido pela cozinha!", "#4CAF50"),
           );
-          // 🔥 EVENTO PRINCIPAL: quando o pedido fica pronto (order-ready), mostra o modelo.glb por 5 segundos 🔥
           socket.on("order-ready", (data) => {
             console.log("🎉 Pedido pronto:", data);
             showOrderNotification(data.productName);
@@ -1092,7 +1115,6 @@
         const modelContainer = document.getElementById("ar-model");
         modelContainer.innerHTML = "";
         const model = document.createElement("a-entity");
-        // 🔥 AQUI: usa o modelo específico de cada produto (hamburguer.glb, pizza.glb, coca.glb) 🔥
         model.setAttribute(
           "gltf-model",
           `url(assets/models/${product.modelFile})`,
@@ -1267,7 +1289,6 @@
         renderProducts();
         setupCamera();
         setTimeout(() => connectWebSocket(tableNum), 1000);
-        // 🔥 TESTE AUTOMÁTICO REMOVIDO - agora só aparece quando o pedido realmente ficar pronto 🔥
       };
     </script>
   </body>

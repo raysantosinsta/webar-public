@@ -817,7 +817,7 @@
       <i class="fas fa-hand-peace"></i> Toque no modelo para pausar
     </div>
     <div class="gesture-instruction">
-      <i class="fas fa-hand-peace"></i> 1 dedo: move | 2 dedos: gira/pinça
+      <i class="fas fa-hand-peace"></i> um clique para o modelo 3d
     </div>
 
     <script>
@@ -934,13 +934,13 @@
         ambient.setAttribute("type", "ambient");
         ambient.setAttribute("intensity", "1.2");
         tempScene.appendChild(ambient);
-        
+
         const directional = document.createElement("a-light");
         directional.setAttribute("type", "directional");
         directional.setAttribute("intensity", "0.8");
         directional.setAttribute("position", "2 3 2");
         tempScene.appendChild(directional);
-        
+
         const backLight = document.createElement("a-light");
         backLight.setAttribute("type", "directional");
         backLight.setAttribute("intensity", "0.5");
@@ -949,25 +949,28 @@
 
         const modelEntity = document.createElement("a-entity");
         // 🔥 AQUI: usa APENAS o modelo.glb para notificações 🔥
-        modelEntity.setAttribute("gltf-model", "url(assets/models/Rumba-Dancing.glb)");
+        modelEntity.setAttribute(
+          "gltf-model",
+          "url(assets/models/Rumba-Dancing.glb)",
+        );
         // 🔥 ESCALA AJUSTADA PARA 2 (tamanho ideal) 🔥🔥
         modelEntity.setAttribute("scale", "0.01 0.01 0.01");
         // Posiciona o modelo no centro da vista
         modelEntity.setAttribute("position", "0 0 0");
         modelEntity.setAttribute("rotation", "0 0 0");
-        
+
         // 🔥 ATIVA A ANIMAÇÃO DO MODELO MIXAMO 🔥
         // Opção 1: Tenta reproduzir todas as animações em loop
         modelEntity.setAttribute("animation-mixer", "loop: repeat");
-        
+
         // Opção 2: Se tiver múltiplas animações, especifica qual reproduzir
         // modelEntity.setAttribute("animation-mixer", "clip: *; loop: repeat");
-        
+
         // Opção 3: Para uma animação específica (se souber o nome)
         // modelEntity.setAttribute("animation-mixer", "clip: Animation; loop: repeat");
-        
+
         tempScene.appendChild(modelEntity);
-        
+
         // Log para debug - mostra quantas animações o modelo tem
         modelEntity.addEventListener("model-loaded", () => {
           const mesh = modelEntity.getObject3D("mesh");
@@ -980,7 +983,7 @@
             console.log("⚠️ Nenhuma animação encontrada no modelo");
           }
         });
-        
+
         // Câmera posicionada para melhor visualização
         const camera = document.createElement("a-camera");
         camera.setAttribute("position", "0 1.5 2.5");
@@ -1161,23 +1164,23 @@
         );
         if (navigator.vibrate) navigator.vibrate(50);
       };
-      
+
       function updateCartButton() {
         const total = cart.reduce((s, i) => s + i.quantity, 0);
         document.getElementById("cart-count").textContent = total;
         document.getElementById("cart-btn").style.display =
           total > 0 ? "flex" : "none";
       }
-      
+
       window.openCart = function () {
         renderCartItems();
         document.getElementById("cart-screen").style.display = "flex";
       };
-      
+
       window.closeCart = function () {
         document.getElementById("cart-screen").style.display = "none";
       };
-      
+
       function renderCartItems() {
         const container = document.getElementById("cart-items-container");
         container.innerHTML = "";
@@ -1196,14 +1199,14 @@
           container.innerHTML =
             "<p style='text-align:center; color:rgba(255,255,255,0.5); padding:40px;'><i class='fas fa-shopping-bag'></i> Seu carrinho está vazio.</p>";
       }
-      
+
       window.removeFromCart = function (idx) {
         cart.splice(idx, 1);
         renderCartItems();
         updateCartButton();
         if (cart.length === 0) closeCart();
       };
-      
+
       window.sendFullOrder = async function () {
         if (cart.length === 0) return;
         const btn = document.querySelector("#cart-screen .send-order-btn");
@@ -1246,13 +1249,13 @@
           btn.innerHTML = original;
         }
       };
-      
+
       window.updateQty = function (val) {
         currentQuantity = Math.max(1, currentQuantity + val);
         document.getElementById("quantity").textContent = currentQuantity;
         if (navigator.vibrate) navigator.vibrate(20);
       };
-      
+
       window.backToMenu = function () {
         document.getElementById("menu-screen").classList.remove("hide");
         document.getElementById("back-btn").style.display = "none";
@@ -1261,7 +1264,7 @@
           .classList.remove("show");
         document.getElementById("ar-model").innerHTML = "";
       };
-      
+
       window.saveUrl = function () {
         let newUrl = document.getElementById("backend-url").value.trim();
         if (!newUrl) {
@@ -1279,7 +1282,7 @@
           1;
         setTimeout(() => connectWebSocket(tableNum), 500);
       };
-      
+
       window.onload = () => {
         const tableNum =
           parseInt(new URLSearchParams(window.location.search).get("mesa")) ||

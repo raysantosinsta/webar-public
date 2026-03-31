@@ -951,7 +951,7 @@
         // 🔥 AQUI: usa APENAS o modelo.glb para notificações 🔥
         modelEntity.setAttribute("gltf-model", "url(assets/models/Rumba-Dancing.glb)");
         // 🔥 ESCALA AJUSTADA PARA 2 (tamanho ideal) 🔥
-        modelEntity.setAttribute("scale", "0.5 0.5 0.5");
+        modelEntity.setAttribute("scale", "0.15 0.15 0.15");
         // Posiciona o modelo no centro da vista
         modelEntity.setAttribute("position", "0 0 0");
         modelEntity.setAttribute("rotation", "0 0 0");
@@ -990,7 +990,7 @@
         tempContainer.appendChild(tempScene);
 
         // Contador regressivo de 5 segundos
-        let secondsLeft = 5;
+        let secondsLeft = 10;
         const countdownEl = overlay.querySelector("#temp-countdown");
         const interval = setInterval(() => {
           secondsLeft--;
@@ -1007,7 +1007,7 @@
           clearInterval(interval);
           if (overlay && overlay.parentNode) overlay.remove();
           activeNotificationTimeout = null;
-        }, 5000);
+        }, 10000);
 
         overlay.querySelector("#close-temp-model").onclick = () => {
           clearInterval(interval);

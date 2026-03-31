@@ -948,30 +948,21 @@
         const modelEntity = document.createElement("a-entity");
         // 🔥 AQUI: usa APENAS o modelo.glb para notificações 🔥
         modelEntity.setAttribute("gltf-model", "url(assets/models/modelo.glb)");
-        // 🔥 ESCALA MUITO MAIOR - COMEÇA COM 50x 🔥
-        modelEntity.setAttribute("scale", "1 1 1");
+        // 🔥 ESCALA AJUSTADA PARA 2 (tamanho ideal) 🔥
+        modelEntity.setAttribute("scale", "2 2 2");
         // Posiciona o modelo no centro da vista
         modelEntity.setAttribute("position", "0 0 0");
         modelEntity.setAttribute("rotation", "0 0 0");
-        modelEntity.setAttribute("animation", {
-          property: "rotation",
-          to: "0 360 0",
-          dur: 12000,
-          easing: "linear",
-          loop: true,
-        });
+        // 🔥 ANIMAÇÃO REMOVIDA - seu modelo já tem animação própria 🔥
         tempScene.appendChild(modelEntity);
         
-        // 🔥 CÂMERA MAIS PRÓXIMA DO MODELO 🔥
+        // Câmera posicionada para melhor visualização
         const camera = document.createElement("a-camera");
-        camera.setAttribute("position", "0 1.5 2.5"); // Mais perto (2.5 ao invés de 3)
+        camera.setAttribute("position", "0 1.5 2.5");
         camera.setAttribute("look-controls", "enabled: false");
         tempScene.appendChild(camera);
 
         tempContainer.appendChild(tempScene);
-
-        // Log para debug
-        console.log("🎬 Modelo 3D carregado com escala 50x");
 
         // Contador regressivo de 5 segundos
         let secondsLeft = 5;
@@ -1038,6 +1029,7 @@
           socket.on("order-confirmed", () =>
             showToast("✅ Pedido recebido pela cozinha!", "#4CAF50"),
           );
+          // 🔥 EVENTO PRINCIPAL: quando o pedido fica pronto (order-ready), mostra o modelo.glb por 5 segundos 🔥
           socket.on("order-ready", (data) => {
             console.log("🎉 Pedido pronto:", data);
             showOrderNotification(data.productName);
@@ -1099,6 +1091,7 @@
         const modelContainer = document.getElementById("ar-model");
         modelContainer.innerHTML = "";
         const model = document.createElement("a-entity");
+        // 🔥 AQUI: usa o modelo específico de cada produto (hamburguer.glb, pizza.glb, coca.glb) 🔥
         model.setAttribute(
           "gltf-model",
           `url(assets/models/${product.modelFile})`,
@@ -1273,12 +1266,7 @@
         renderProducts();
         setupCamera();
         setTimeout(() => connectWebSocket(tableNum), 1000);
-        
-        // 🔥 TESTE AUTOMÁTICO (remove depois se não quiser) 🔥
-        setTimeout(() => {
-          console.log("🔔 TESTE: Simulando pedido pronto!");
-          showOrderNotification("Hambúrguer Artesanal");
-        }, 3000);
+        // 🔥 TESTE AUTOMÁTICO REMOVIDO - agora só aparece quando o pedido realmente ficar pronto 🔥
       };
     </script>
   </body>

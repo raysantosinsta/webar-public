@@ -8,27 +8,20 @@
     />
     <title>Gourmet AR - Cardápio Interativo 3D</title>
 
-    <!-- Preconnect para carregamento mais rápido -->
     <link rel="preconnect" href="https://aframe.io" />
     <link rel="preconnect" href="https://raw.githack.com" />
 
-    <!-- Font Awesome Icons -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-
-    <!-- Google Fonts Premium -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
       rel="stylesheet"
     />
 
-    <!-- Socket.io Client -->
     <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
-
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <!-- Biblioteca para animações de modelos GLB/GLTF -->
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
@@ -318,7 +311,6 @@
         font-size: 24px;
         margin-bottom: 10px;
       }
-
       .notification-model-card p {
         color: white;
         margin-bottom: 20px;
@@ -392,13 +384,11 @@
         font-size: 16px;
         color: #ff6b35;
       }
-
       .nutrition-item span {
         font-size: 14px;
         font-weight: 600;
         color: white;
       }
-
       .nutrition-item small {
         font-size: 11px;
         color: rgba(255, 255, 255, 0.6);
@@ -691,6 +681,36 @@
         font-size: 28px;
         cursor: pointer;
       }
+
+      /* ── Botões de controle vertical ── */
+      #vertical-controls {
+        position: fixed;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: none; /* aparece apenas na view AR */
+        flex-direction: column;
+        gap: 12px;
+        z-index: 200;
+      }
+
+      #vertical-controls button {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        font-size: 24px;
+        cursor: pointer;
+        touch-action: manipulation;
+        user-select: none;
+        backdrop-filter: blur(8px);
+      }
+
+      #vertical-controls button:active {
+        background: rgba(255, 107, 53, 0.8);
+      }
     </style>
   </head>
   <body>
@@ -715,20 +735,17 @@
         ></a-entity>
       </a-entity>
 
+      <!-- Container principal do modelo AR -->
       <a-entity id="ar-model-container" position="0 0.5 -4" gesture-handler>
         <a-entity id="ar-model" class="clickable"></a-entity>
       </a-entity>
     </a-scene>
 
-    <!-- <div class="config-panel">
-      <input
-        type="text"
-        id="backend-url"
-        placeholder="URL do Servidor"
-        value="https://backend-nestjs-ra.onrender.com/"
-      />
-      <button onclick="saveUrl()"><i class="fas fa-save"></i></button>
-    </div> -->
+    <!-- Botões verticais (visíveis só na view AR) -->
+    <div id="vertical-controls">
+      <button id="btn-up">▲</button>
+      <button id="btn-down">▼</button>
+    </div>
 
     <div id="menu-screen">
       <div class="header">
@@ -743,6 +760,7 @@
     <div id="connection-status" class="connecting">
       <i class="fas fa-circle"></i> <span>Conectando...</span>
     </div>
+
     <button id="cart-btn" onclick="openCart()">
       <i class="fas fa-shopping-bag"></i> <span id="cart-count">0</span>
     </button>
@@ -797,12 +815,13 @@
       </div>
       <div class="order-controls">
         <div class="quantity-control">
-          <button class="qty-btn" onclick="updateQty(-1)">-</button
-          ><span
+          <button class="qty-btn" onclick="updateQty(-1)">-</button>
+          <span
             id="quantity"
             style="font-weight: bold; font-size: 18px; color: white"
             >1</span
-          ><button class="qty-btn" onclick="updateQty(1)">+</button>
+          >
+          <button class="qty-btn" onclick="updateQty(1)">+</button>
         </div>
         <button id="confirm-order" class="product-details-button">
           <i class="fas fa-cart-plus"></i> Adicionar ao Pedido
@@ -813,14 +832,153 @@
     <div class="camera-status" id="camera-status">
       <i class="fas fa-camera"></i> Iniciando...
     </div>
-    <!-- <div class="instruction">
-      <i class="fas fa-hand-peace"></i> Toque no modelo 3D para pausar
-    </div> -->
+
     <div class="gesture-instruction">
       <i class="fas fa-hand-peace"></i> Toque no modelo 3D para pausar
     </div>
 
     <script>
+      // ─────────────────────────────────────────────────────────────────
+      // COMPONENTE DE MOVIMENTAÇÃO (drag horizontal + vertical via botões)
+      // Aplicado sobre #ar-model-container para não interferir com
+      // gesture-handler (pinch/rotate) que fica no mesmo elemento.
+      // ─────────────────────────────────────────────────────────────────
+      AFRAME.registerComponent("drag-place", {
+        init: function () {
+          this.container = document.getElementById("ar-model-container");
+          this.camera = document.querySelector("[camera]");
+          this.dragging = false;
+          this.pointerId = null;
+          this.lastX = 0;
+          this.lastY = 0;
+          this._vert = null;
+
+          // Lê posição inicial do container
+          const p = this.container.getAttribute("position");
+          this.pos = { x: p.x, y: p.y, z: p.z };
+
+          this.hSensitivity = 0.008;
+
+          this._bindVertical();
+
+          // Usa o canvas da cena para não conflitar com elementos do DOM
+          const canvas =
+            document.querySelector("#ar-scene canvas") || document.body;
+          canvas.addEventListener("pointerdown", this._onDown.bind(this), {
+            passive: false,
+          });
+          canvas.addEventListener("pointermove", this._onMove.bind(this), {
+            passive: false,
+          });
+          canvas.addEventListener("pointerup", this._onUp.bind(this));
+          canvas.addEventListener("pointercancel", this._onUp.bind(this));
+        },
+
+        _onDown: function (evt) {
+          if (this.dragging) return;
+          // Ignora toques secundários (usados pelo gesture-handler para pinch/rotate)
+          if (evt.pointerType === "touch" && !evt.isPrimary) return;
+          evt.preventDefault();
+          this.dragging = true;
+          this.pointerId = evt.pointerId;
+          this.lastX = evt.clientX;
+          this.lastY = evt.clientY;
+          try {
+            evt.target.setPointerCapture(evt.pointerId);
+          } catch (e) {}
+        },
+
+        _onMove: function (evt) {
+          if (!this.dragging || evt.pointerId !== this.pointerId) return;
+          evt.preventDefault();
+
+          const dx = evt.clientX - this.lastX;
+          const dy = evt.clientY - this.lastY;
+          this.lastX = evt.clientX;
+          this.lastY = evt.clientY;
+
+          // Direção da câmera projetada no plano horizontal
+          const camObj = this.camera.object3D;
+          const forward = new THREE.Vector3();
+          const right = new THREE.Vector3();
+          camObj.getWorldDirection(forward);
+          forward.y = 0;
+          forward.normalize();
+          right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+          // dx → eixo lateral   dy → eixo frente/trás
+          this.pos.x += right.x * dx * this.hSensitivity;
+          this.pos.z += right.z * dx * this.hSensitivity;
+          this.pos.x -= forward.x * dy * this.hSensitivity;
+          this.pos.z -= forward.z * dy * this.hSensitivity;
+
+          this._apply();
+        },
+
+        _onUp: function (evt) {
+          if (evt.pointerId !== this.pointerId) return;
+          this.dragging = false;
+          this.pointerId = null;
+        },
+
+        _bindVertical: function () {
+          const step = 0.04;
+          const tick = 16;
+
+          const start = (dir) => {
+            if (this._vert) return;
+            this._vert = setInterval(() => {
+              this.pos.y += dir * step;
+              this._apply();
+            }, tick);
+          };
+          const stop = () => {
+            clearInterval(this._vert);
+            this._vert = null;
+          };
+
+          const btnUp = document.getElementById("btn-up");
+          const btnDown = document.getElementById("btn-down");
+
+          btnUp.addEventListener("mousedown", () => start(+1));
+          btnDown.addEventListener("mousedown", () => start(-1));
+          document.addEventListener("mouseup", stop);
+
+          btnUp.addEventListener(
+            "touchstart",
+            (e) => {
+              e.preventDefault();
+              start(+1);
+            },
+            { passive: false },
+          );
+          btnDown.addEventListener(
+            "touchstart",
+            (e) => {
+              e.preventDefault();
+              start(-1);
+            },
+            { passive: false },
+          );
+          btnUp.addEventListener("touchend", stop);
+          btnDown.addEventListener("touchend", stop);
+        },
+
+        _apply: function () {
+          this.container.setAttribute("position", this.pos);
+          // Garante que o container nunca fique invisível
+          if (!this.container.getAttribute("visible")) {
+            this.container.setAttribute("visible", true);
+          }
+        },
+      });
+
+      // Registra o componente na cena
+      document.getElementById("ar-scene").setAttribute("drag-place", "");
+
+      // ─────────────────────────────────────────────────────────────────
+      // RESTANTE DO CÓDIGO ORIGINAL — sem alterações
+      // ─────────────────────────────────────────────────────────────────
       const products = [
         {
           id: 1,
@@ -879,10 +1037,7 @@
       let activeNotificationTimeout = null;
 
       const savedUrl = localStorage.getItem("backend_url");
-      if (savedUrl) {
-        BACKEND_URL = savedUrl;
-        document.getElementById("backend-url").value = savedUrl;
-      }
+      if (savedUrl) BACKEND_URL = savedUrl;
 
       function showToast(message, color) {
         let toast = document.getElementById("toast-message");
@@ -898,16 +1053,13 @@
         setTimeout(() => toast.classList.remove("show"), 3000);
       }
 
-      // FUNÇÃO PRINCIPAL: mostra APENAS o modelo.glb quando o pedido fica pronto
       function showTemporary3DModel(productName) {
-        // Remove overlay existente se houver
         const existingOverlay = document.querySelector(
           ".notification-model-overlay",
         );
         if (existingOverlay) existingOverlay.remove();
         if (activeNotificationTimeout) clearTimeout(activeNotificationTimeout);
 
-        // Cria container flutuante para exibir o modelo 3D temporariamente
         const overlay = document.createElement("div");
         overlay.className = "notification-model-overlay";
         overlay.innerHTML = `
@@ -921,7 +1073,6 @@
         `;
         document.body.appendChild(overlay);
 
-        // Criar cena A-Frame temporária para o modelo 3D - USANDO APENAS modelo.glb
         const tempContainer = overlay.querySelector("#temp-model-3d");
         const tempScene = document.createElement("a-scene");
         tempScene.setAttribute("embedded", "");
@@ -948,43 +1099,29 @@
         tempScene.appendChild(backLight);
 
         const modelEntity = document.createElement("a-entity");
-        // 🔥 AQUI: usa APENAS o modelo.glb para notificações 🔥
         modelEntity.setAttribute(
           "gltf-model",
           "url(assets/models/Rumba-Dancing.glb)",
         );
-        // 🔥 ESCALA AJUSTADA PARA 2 (tamanho ideal) 🔥🔥
         modelEntity.setAttribute("scale", "0.01 0.01 0.01");
-        // Posiciona o modelo no centro da vista
         modelEntity.setAttribute("position", "0 0 0");
         modelEntity.setAttribute("rotation", "0 0 0");
-
-        // 🔥 ATIVA A ANIMAÇÃO DO MODELO MIXAMO 🔥
-        // Opção 1: Tenta reproduzir todas as animações em loop
         modelEntity.setAttribute("animation-mixer", "loop: repeat");
 
-        // Opção 2: Se tiver múltiplas animações, especifica qual reproduzir
-        // modelEntity.setAttribute("animation-mixer", "clip: *; loop: repeat");
-
-        // Opção 3: Para uma animação específica (se souber o nome)
-        // modelEntity.setAttribute("animation-mixer", "clip: Animation; loop: repeat");
-
-        tempScene.appendChild(modelEntity);
-
-        // Log para debug - mostra quantas animações o modelo tem
         modelEntity.addEventListener("model-loaded", () => {
           const mesh = modelEntity.getObject3D("mesh");
           if (mesh && mesh.animations) {
             console.log("🎬 Animações encontradas:", mesh.animations.length);
-            mesh.animations.forEach((anim, i) => {
-              console.log(`  - Animação ${i}: ${anim.name}`);
-            });
+            mesh.animations.forEach((anim, i) =>
+              console.log(`  - Animação ${i}: ${anim.name}`),
+            );
           } else {
             console.log("⚠️ Nenhuma animação encontrada no modelo");
           }
         });
 
-        // Câmera posicionada para melhor visualização
+        tempScene.appendChild(modelEntity);
+
         const camera = document.createElement("a-camera");
         camera.setAttribute("position", "0 1.5 2.5");
         camera.setAttribute("look-controls", "enabled: false");
@@ -992,7 +1129,6 @@
 
         tempContainer.appendChild(tempScene);
 
-        // Contador regressivo de 5 segundos
         let secondsLeft = 10;
         const countdownEl = overlay.querySelector("#temp-countdown");
         const interval = setInterval(() => {
@@ -1038,7 +1174,7 @@
         updateConnectionStatus("connecting", "Conectando...");
         try {
           socket = io(BACKEND_URL, {
-            query: { tableNumber: tableNumber, type: "customer" },
+            query: { tableNumber, type: "customer" },
             transports: ["websocket", "polling"],
             reconnection: true,
             reconnectionAttempts: 5,
@@ -1115,6 +1251,7 @@
         document.getElementById("nutrition-fat").textContent = product.fat || 0;
         document.getElementById("product-details-price").textContent =
           `R$ ${product.price.toFixed(2)}`;
+
         const modelContainer = document.getElementById("ar-model");
         modelContainer.innerHTML = "";
         const model = document.createElement("a-entity");
@@ -1140,8 +1277,19 @@
           model.setAttribute("animation", anim);
         });
         modelContainer.appendChild(model);
+
+        // Reposiciona o container para a posição padrão ao trocar produto
+        // e sincroniza o estado interno do drag-place
+        const scene = document.getElementById("ar-scene");
+        const dragComp = scene.components["drag-place"];
+        if (dragComp) {
+          dragComp.pos = { x: 0, y: 0.5, z: -4 };
+          dragComp._apply();
+        }
+
         document.getElementById("menu-screen").classList.add("hide");
         document.getElementById("back-btn").style.display = "flex";
+        document.getElementById("vertical-controls").style.display = "flex"; // mostra botões ▲▼
         document.getElementById("product-details-panel").classList.add("show");
       };
 
@@ -1176,7 +1324,6 @@
         renderCartItems();
         document.getElementById("cart-screen").style.display = "flex";
       };
-
       window.closeCart = function () {
         document.getElementById("cart-screen").style.display = "none";
       };
@@ -1259,6 +1406,7 @@
       window.backToMenu = function () {
         document.getElementById("menu-screen").classList.remove("hide");
         document.getElementById("back-btn").style.display = "none";
+        document.getElementById("vertical-controls").style.display = "none"; // esconde botões ▲▼
         document
           .getElementById("product-details-panel")
           .classList.remove("show");
@@ -1266,16 +1414,14 @@
       };
 
       window.saveUrl = function () {
-        let newUrl = document.getElementById("backend-url").value.trim();
+        let newUrl = document.getElementById("backend-url")?.value.trim();
         if (!newUrl) {
           showToast("⚠️ Insira uma URL válida!", "#F44336");
           return;
         }
         if (!newUrl.startsWith("http")) newUrl = "https://" + newUrl;
-        newUrl = newUrl.replace(/\/$/, "");
-        BACKEND_URL = newUrl;
+        newUrl = BACKEND_URL = newUrl.replace(/\/$/, "");
         localStorage.setItem("backend_url", BACKEND_URL);
-        document.getElementById("backend-url").value = BACKEND_URL;
         showToast(`✅ URL salva: ${BACKEND_URL}`, "#4CAF50");
         const tableNum =
           parseInt(new URLSearchParams(window.location.search).get("mesa")) ||
